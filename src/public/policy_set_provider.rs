@@ -1,0 +1,252 @@
+//! Provides an Amazon Verified Permissions Policy Set Provider!
+use std::str::FromStr;
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use aws_sdk_verifiedpermissions::Client;
+use cedar_policy::{PolicyId, PolicySet, PolicySetError, Request};
+use cedar_policy_core::parser::err::ParseErrors;
+use derive_builder::Builder;
+use thiserror::Error;
+use tokio::runtime::Handle;
+use tokio::sync::{Mutex, RwLock};
+use tokio::task;
+use tracing::error;
+
+use cedar_local_agent::public::{
+    PolicySetProviderError, SimplePolicySetProvider, UpdateProviderData, UpdateProviderDataError,
+};
+
+use crate::private::sources::policy::core::{PolicySource, VerifiedPermissionsPolicySource};
+use crate::private::sources::policy::error::PolicySourceException;
+use crate::private::sources::template::core::{TemplateSource, VerifiedPermissionsTemplateSource};
+use crate::private::sources::template::error::TemplateSourceException;
+use crate::private::translator::avp_to_cedar::Policy;
+use crate::private::types::policy_store_id::PolicyStoreId;
+
+/// `ProviderError` thrown by the constructor of the provider
+#[derive(Error, Debug)]
+pub enum ProviderError {
+    /// Configuration error
+    #[error("The configuration didn't build: {0}")]
+    Configuration(String),
+    /// Cannot create the policy set
+    #[error("Cannot create the PolicySet with source Amazon Verified Permissions: {0}")]
+    PolicySet(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    /// Cannot retrieve the Policies from Amazon Verified Permissions
+    #[error("Cannot gather the Policies from Amazon Verified Permissions: {0}")]
+    PolicySourceException(#[source] PolicySourceException),
+    /// Cannot retrieve the Templates from Amazon Verified Permissions
+    #[error("Cannot gather the Policies from Amazon Verified Permissions: {0}")]
+    TemplateSourceException(#[source] TemplateSourceException),
+    /// When the file system entity provider cannot update it's data
+    #[error("The update provider failed to update the entities: {0}")]
+    Update(#[source] UpdateProviderDataError),
+}
+
+impl From<TemplateSourceException> for ProviderError {
+    fn from(value: TemplateSourceException) -> Self {
+        Self::TemplateSourceException(value)
+    }
+}
+
+impl From<PolicySourceException> for ProviderError {
+    fn from(value: PolicySourceException) -> Self {
+        Self::PolicySourceException(value)
+    }
+}
+
+impl From<PolicySetError> for ProviderError {
+    fn from(value: PolicySetError) -> Self {
+        Self::PolicySet(Box::new(value))
+    }
+}
+
+impl From<ParseErrors> for ProviderError {
+    fn from(value: ParseErrors) -> Self {
+        Self::PolicySet(Box::new(value))
+    }
+}
+
+impl From<ConfigBuilderError> for ProviderError {
+    fn from(value: ConfigBuilderError) -> Self {
+        Self::Configuration(value.to_string())
+    }
+}
+
+#[derive(Builder, Debug)]
+#[builder(pattern = "owned")]
+struct Config {
+    /// Gathers policies from Amazon Verified Permissions
+    pub policy_source: VerifiedPermissionsPolicySource,
+    /// Gathers templates from Amazon Verified Permissions
+    pub template_source: VerifiedPermissionsTemplateSource,
+    /// Policy Store Id to gather policies and templates from
+    pub policy_store_id: PolicyStoreId,
+}
+
+/// `EntityProvider` structure implements the `SimpleEntityProvider` trait.
+#[derive(Debug)]
+pub struct PolicySetProvider {
+    /// Entities path, stored to allow refreshing from disk.
+    policy_store_id: PolicyStoreId,
+    /// Policy Source
+    policy_source: Arc<Mutex<VerifiedPermissionsPolicySource>>,
+    /// Policy Source
+    template_source: Arc<Mutex<VerifiedPermissionsTemplateSource>>,
+    /// Policy Set data that can be updated in a background thread
+    policy_set: RwLock<Arc<PolicySet>>,
+}
+
+impl PolicySetProvider {
+    /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
+    /// client and policy store id
+    ///
+    /// # Errors
+    ///
+    /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
+    /// applicable data on initialization.
+    pub fn from_client(
+        policy_store_id: String,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
+        Self::new(
+            ConfigBuilder::default()
+                .policy_store_id(PolicyStoreId::from(policy_store_id))
+                .policy_source(VerifiedPermissionsPolicySource::from(
+                    verified_permissions_client.clone(),
+                ))
+                .template_source(VerifiedPermissionsTemplateSource::from(
+                    verified_permissions_client,
+                ))
+                .build()?,
+        )
+    }
+
+    fn new(config: Config) -> Result<Self, ProviderError> {
+        let Config {
+            policy_store_id,
+            template_source,
+            policy_source,
+        } = config;
+
+        let template_source = Arc::new(Mutex::new(template_source));
+        let policy_source = Arc::new(Mutex::new(policy_source));
+
+        let mut policy_set = PolicySet::new();
+        let policy_store_id_clone = policy_store_id.clone();
+        let template_source_ref = template_source.clone();
+        let templates = task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                template_source_ref
+                    .lock()
+                    .await
+                    .fetch(policy_store_id_clone)
+                    .await
+            })
+        })?;
+
+        let policy_store_id_clone = policy_store_id.clone();
+        let policy_source_ref = policy_source.clone();
+        let policies = task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                policy_source_ref
+                    .lock()
+                    .await
+                    .fetch(policy_store_id_clone.clone())
+                    .await
+            })
+        })?;
+
+        for (_, template) in templates {
+            policy_set.add_template(template.0)?;
+        }
+
+        for (_, policy) in policies {
+            match policy {
+                Policy::Static(cedar_policy) => {
+                    policy_set.add(cedar_policy)?;
+                }
+                Policy::TemplateLinked(policy_id, template_id, entity_map) => {
+                    let cedar_policy_id = PolicyId::from_str(&policy_id.to_string())?;
+                    let cedar_template_id = PolicyId::from_str(&template_id.to_string())?;
+                    policy_set.link(cedar_template_id, cedar_policy_id, entity_map)?;
+                }
+            }
+        }
+
+        Ok(Self {
+            policy_store_id,
+            template_source,
+            policy_source,
+            policy_set: RwLock::new(Arc::new(policy_set)),
+        })
+    }
+}
+
+#[async_trait]
+impl SimplePolicySetProvider for PolicySetProvider {
+    async fn get_policy_set(&self, _: &Request) -> Result<Arc<PolicySet>, PolicySetProviderError> {
+        Ok(self.policy_set.read().await.clone())
+    }
+}
+
+#[async_trait]
+impl UpdateProviderData for PolicySetProvider {
+    async fn update_provider_data(&self) -> Result<(), UpdateProviderDataError> {
+        let templates;
+        {
+            templates = self
+                .template_source
+                .lock()
+                .await
+                .fetch(self.policy_store_id.clone())
+                .await
+                .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+        };
+
+        let policies;
+        {
+            policies = self
+                .policy_source
+                .lock()
+                .await
+                .fetch(self.policy_store_id.clone())
+                .await
+                .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+        }
+
+        let mut policy_set_data = PolicySet::new();
+        for (_, template) in templates {
+            policy_set_data
+                .add_template(template.0)
+                .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+        }
+
+        for (_, policy) in policies {
+            match policy {
+                Policy::Static(cedar_policy) => {
+                    policy_set_data
+                        .add(cedar_policy)
+                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                }
+                Policy::TemplateLinked(policy_id, template_id, entity_map) => {
+                    let cedar_policy_id = PolicyId::from_str(&policy_id.to_string())
+                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                    let cedar_template_id = PolicyId::from_str(&template_id.to_string())
+                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                    policy_set_data
+                        .link(cedar_template_id, cedar_policy_id, entity_map)
+                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                }
+            }
+        }
+
+        {
+            let mut policy_set = self.policy_set.write().await;
+            *policy_set = Arc::new(policy_set_data);
+        }
+
+        Ok(())
+    }
+}

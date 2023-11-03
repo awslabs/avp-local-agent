@@ -1,0 +1,30 @@
+[
+  {
+    "uid": { "__entity": { "type": "User", "id": "Eric"} },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": { "__entity": { "type": "User", "id": "Mike"} },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": { "__entity": { "type": "Box", "id": "1"} },
+    "attrs": {
+      "owner": {
+        "__entity": { "type": "User", "id": "Eric"}
+      }
+    },
+    "parents": []
+  },
+  {
+    "uid": { "__entity": { "type": "Box", "id": "2"} },
+    "attrs": {
+      "owner": {
+        "__entity": { "type": "User", "id": "Mike"}
+      }
+    },
+    "parents": []
+  }
+]
