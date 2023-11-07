@@ -8,8 +8,20 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  simple_checkout_test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Foobar
+        run: |
+          echo "Foobar Secret: ${{ secrets.FOOBAR }}"
+      - name: Checkout cedar-local-agent
+        uses: actions/checkout@v4
+        with:
+          repository: cedar-policy/cedar-local-agent
+          token: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
+          path: cedar-local-agent
+
   build_and_test:
     uses: ./.github/workflows/build_and_test.yml
-    secrets:
-      CEDAR_LOCAL_AGENT_PAT: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
-      FOOBAR: ${{ secrets.FOOBAR }}
+    secrets: inherit
