@@ -15,7 +15,7 @@ jobs:
       - name: Checkout avp-local-agent
         uses: actions/checkout@v4
         with:
-          path: avp-local-agent
+          path: main
       - name: Checkout cedar-local-agent (temporary step)
         uses: actions/checkout@v4
         env:
