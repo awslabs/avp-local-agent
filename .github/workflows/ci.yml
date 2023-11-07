@@ -10,3 +10,6 @@ env:
 jobs:
   build_and_test:
     uses: ./.github/workflows/build_and_test.yml
+    with:
+      secrets:
+        CEDAR_LOCAL_AGENT_PAT: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
