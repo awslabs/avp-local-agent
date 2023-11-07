@@ -10,4 +10,6 @@ env:
 jobs:
   build_and_test:
     uses: ./.github/workflows/build_and_test.yml
-    secrets: inherit
+    secrets:
+      CEDAR_LOCAL_AGENT_PAT: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
+      FOOBAR: ${{ secrets.FOOBAR }}
