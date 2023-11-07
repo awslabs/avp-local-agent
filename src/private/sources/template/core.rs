@@ -1,6 +1,6 @@
 //! Exposes a `TemplateSource` trait and an implementation using Verified Permissions API calls.
 
-use crate::private::sources::cache::template::PolicyTemplateCache;
+use crate::private::sources::cache::template::GetPolicyTemplateOutputCache;
 use crate::private::sources::template::{
     error::TemplateSourceException,
     loader::ListPolicyTemplates,
@@ -43,7 +43,7 @@ pub struct VerifiedPermissionsTemplateSource {
     reader: GetPolicyTemplate,
 
     /// A cache used to minimize API calls through `GetPolicyTemplate`.
-    cache: PolicyTemplateCache,
+    cache: GetPolicyTemplateOutputCache,
 }
 
 impl VerifiedPermissionsTemplateSource {
@@ -52,7 +52,7 @@ impl VerifiedPermissionsTemplateSource {
         Self {
             loader: ListPolicyTemplates::new(client.clone()),
             reader: GetPolicyTemplate::new(client),
-            cache: PolicyTemplateCache::new(),
+            cache: GetPolicyTemplateOutputCache::new(),
         }
     }
 }

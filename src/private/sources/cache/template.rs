@@ -13,14 +13,14 @@ use std::iter::IntoIterator;
 /// An implementation of the template cache. This caches the raw `GetPolicyTemplateOutput` structs
 /// from AVP `GetPolicyTemplate` calls.
 #[derive(Debug)]
-pub struct PolicyTemplateCache {
+pub struct GetPolicyTemplateOutputCache {
     /// Template cache of `PolicyTemplateId`, `GetPolicyTemplateOutput`
     template_cache: TemplateCache<GetPolicyTemplateOutput>,
 }
 
 /// An `IntoIterator` implementation for the template cache. This enables iteration of cache values
 /// without the need to clone the whole cache
-impl<'a> IntoIterator for &'a mut PolicyTemplateCache {
+impl<'a> IntoIterator for &'a mut GetPolicyTemplateOutputCache {
     type Item = (&'a TemplateId, &'a mut GetPolicyTemplateOutput);
     type IntoIter = IterMut<'a, TemplateId, GetPolicyTemplateOutput>;
 
@@ -29,7 +29,7 @@ impl<'a> IntoIterator for &'a mut PolicyTemplateCache {
     }
 }
 
-impl Cache for PolicyTemplateCache {
+impl Cache for GetPolicyTemplateOutputCache {
     type Key = TemplateId;
     type Value = GetPolicyTemplateOutput;
     type LoadedItems = HashMap<Self::Key, PolicyTemplateItem>;
@@ -81,7 +81,7 @@ impl Cache for PolicyTemplateCache {
 }
 #[cfg(test)]
 mod test {
-    use crate::private::sources::cache::template::PolicyTemplateCache;
+    use crate::private::sources::cache::template::GetPolicyTemplateOutputCache;
     use crate::private::sources::{Cache, CacheChange};
     use crate::private::types::template_id::TemplateId;
     use aws_sdk_verifiedpermissions::operation::get_policy_template::GetPolicyTemplateOutput;
@@ -92,7 +92,7 @@ mod test {
 
     #[test]
     fn put_on_a_missing_key_returns_none() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let missing_key = TemplateId("missing_key".to_string());
         let value = GetPolicyTemplateOutput::builder().build();
         assert_eq!(template_cache.put(missing_key, value), None);
@@ -100,7 +100,7 @@ mod test {
 
     #[test]
     fn put_on_a_present_key_returns_old_value() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let key = TemplateId("key".to_string());
         let value1 = GetPolicyTemplateOutput::builder()
             .policy_store_id("ps-1")
@@ -115,14 +115,14 @@ mod test {
 
     #[test]
     fn get_on_an_empty_cache_returns_none() {
-        let template_cache = PolicyTemplateCache::new();
+        let template_cache = GetPolicyTemplateOutputCache::new();
         let missing_key = TemplateId("missing_key".to_string());
         assert_eq!(template_cache.get(&missing_key), None);
     }
 
     #[test]
     fn get_on_a_missing_key_returns_none() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let key = TemplateId("key".to_string());
         let value = GetPolicyTemplateOutput::builder().build();
         let missing_key = TemplateId("missing_key".to_string());
@@ -133,7 +133,7 @@ mod test {
 
     #[test]
     fn get_on_a_present_key_returns_value() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let key = TemplateId("key".to_string());
         let value = GetPolicyTemplateOutput::builder().build();
         assert_eq!(template_cache.put(key.clone(), value.clone()), None);
@@ -142,14 +142,14 @@ mod test {
 
     #[test]
     fn remove_on_a_missing_key_returns_none() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let missing_key = TemplateId("missing_key".to_string());
         assert!(template_cache.remove(&missing_key).is_none());
     }
 
     #[test]
     fn remove_on_a_present_key_returns_value() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let key = TemplateId("key".to_string());
         let value1 = GetPolicyTemplateOutput::builder()
             .policy_store_id("ps-1")
@@ -162,7 +162,7 @@ mod test {
 
     #[test]
     fn no_new_template_update() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let mut loaded_templates: HashMap<TemplateId, PolicyTemplateItem> = HashMap::new();
 
         let key = TemplateId("pt-1".to_string());
@@ -185,7 +185,7 @@ mod test {
 
     #[test]
     fn return_to_be_deleted_template() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let loaded_templates: HashMap<TemplateId, PolicyTemplateItem> = HashMap::new();
 
         let key = TemplateId("pt-1".to_string());
@@ -203,7 +203,7 @@ mod test {
 
     #[test]
     fn return_to_be_updated_template() {
-        let mut template_cache = PolicyTemplateCache::new();
+        let mut template_cache = GetPolicyTemplateOutputCache::new();
         let mut loaded_templates: HashMap<TemplateId, PolicyTemplateItem> = HashMap::new();
 
         let key = TemplateId("pt-1".to_string());
@@ -228,7 +228,7 @@ mod test {
 
     #[test]
     fn return_to_be_added_template() {
-        let template_cache = PolicyTemplateCache::new();
+        let template_cache = GetPolicyTemplateOutputCache::new();
         let mut loaded_templates: HashMap<TemplateId, PolicyTemplateItem> = HashMap::new();
 
         let key = TemplateId("pt-1".to_string());
