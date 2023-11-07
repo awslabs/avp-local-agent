@@ -18,9 +18,11 @@ jobs:
           path: avp-local-agent
       - name: Checkout cedar-local-agent (temporary step)
         uses: actions/checkout@v4
+        env:
+          CLA_ACCESS: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
         with:
           repository: cedar-policy/cedar-local-agent
-          token: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
+          token: $CLA_ACCESS
           path: cedar-local-agent
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo fmt --all --check
