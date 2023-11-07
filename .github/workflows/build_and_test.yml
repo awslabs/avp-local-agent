@@ -12,7 +12,16 @@ jobs:
         toolchain:
           - stable
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout avp-local-agent
+        uses: actions/checkout@v4
+        with:
+          path: avp-local-agent
+      - name: Checkout cedar-local-agent (temporary step)
+        uses: actions/checkout@v4
+        with:
+          repository: cedar-policy/cedar-local-agent
+          token: ${{ secrets.CLA_READ_PAT }}
+          path: cedar-local-agent
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo fmt --all --check
       - run: RUSTFLAGS="-D warnings -F unsafe-code" cargo build --verbose
@@ -20,7 +29,6 @@ jobs:
       - run: cargo clippy --all-features
       - run: cargo test --verbose
       - run: cargo test --verbose --no-default-features
-      - run: cargo test --verbose -- --ignored
       - run: cargo bench --no-run
       - run: cargo audit --deny warnings
-      # - uses: EmbarkStudios/cargo-deny-action@v1 # cargo deny check
+      - uses: EmbarkStudios/cargo-deny-action@v1 # cargo deny check

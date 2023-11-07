@@ -24,4 +24,7 @@ echo ">>>> cargo bench --no-run" && \
 cargo bench --no-run && \
 
 echo ">>>> cargo audit --deny warnings" && \
-cargo audit --deny warnings
+cargo audit --deny warnings && \
+
+echo ">>>> cargo deny check" && \
+cargo deny check

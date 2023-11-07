@@ -113,3 +113,7 @@ cargo test --features integration-tests
 ```
 
 Note: The integration tests create Amazon Verified Permissions resources within the account and region specified `us-east-1`.
+
+## License
+
+This project is licensed under the Apache-2.0 License.

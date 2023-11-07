@@ -1,0 +1,53 @@
+# This file defines configuration for the cargo deny command
+# Ref: https://github.com/EmbarkStudios/cargo-deny
+targets = []
+
+[advisories]
+vulnerability = "deny"
+unmaintained = "deny"
+notice = "deny"
+unsound = "deny"
+ignore = []
+
+[bans]
+multiple-versions = "deny"
+deny = []
+skip = [
+    { name = "bitflags", version = "=1.3.2" }, # old transitive dependency from cedar_policy_core
+    { name = "darling", version = "=0.14.4" }, # old dependency from derive_builder
+    { name = "darling_macro", version = "=0.14.4" }, # old dependency from derive_builder
+    { name = "darling_core", version = "=0.14.4" }, # old dependency from derive_builder
+    { name = "hashbrown", version = "=0.12.3" }, # old transitive dependency from aws-sdk-verifiedpermissions
+    { name = "indexmap", version = "=1.9.3" }, # old transitive dependency from aws-sdk-verifiedpermissions
+    { name = "regex-syntax", version = "<=0.7.5" }, # old transitive dependency from cedar_policy_core
+    { name = "ring", version = "=0.16.20" }, # old transitive dependency from aws_config
+    { name = "socket2", version = "=0.4.10" }, # old transitive dependency from aws-sdk-verifiedpermissions
+    { name = "spin", version = "=0.5.2" }, # old transitive dependency from aws-config
+    { name = "syn", version = "=1.0.109" }, # old dependency from derive_builder
+    { name = "untrusted", version = "=0.7.1" }, # old dependency from aws-config
+]
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+[licenses]
+unlicensed = "deny"
+allow-osi-fsf-free = "neither"
+copyleft = "deny"
+confidence-threshold = 0.93
+allow = [
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "CC0-1.0",
+    "ISC", # simplified MIT
+    "MIT",
+    "OpenSSL",
+    "Unicode-DFS-2016",
+]
+clarify = [
+    # dependency from aws-config, ring has a non-standard license based on OpenSSL
+    { name = "ring", expression = "OpenSSL", license-files = [ { path = "LICENSE", hash = 0xbd0eed23 } ] },
+]
+exceptions = []
