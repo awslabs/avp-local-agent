@@ -50,11 +50,14 @@ impl Load for ListPolicies {
                 for policy in policies {
                     if let Some(policy_id) = policy.policy_id.as_ref() {
                         policy_ids_map.insert(PolicyId(policy_id.to_string()), policy.clone());
-                        debug!("Loaded Policy from Policy Store: policy_id={policy_id:?}");
                     }
                 }
             }
         }
+        debug!(
+            "Loaded all Policies from Policy Store: policy_ids={:?}",
+            policy_ids_map.keys().collect::<Vec<_>>()
+        );
         Ok(policy_ids_map)
     }
 }

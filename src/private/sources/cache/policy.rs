@@ -74,9 +74,7 @@ impl Cache for GetPolicyOutputCache {
                 policy_updates.insert(policy_id.clone(), CacheChange::Updated);
             }
         }
-
         debug!("Policy Cache Pending Updates: policy_updates={policy_updates:?}");
-
         policy_updates
     }
 }

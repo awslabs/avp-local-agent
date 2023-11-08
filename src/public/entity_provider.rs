@@ -11,7 +11,7 @@ use thiserror::Error;
 use tokio::runtime::Handle;
 use tokio::sync::{Mutex, RwLock};
 use tokio::task;
-use tracing::error;
+use tracing::{debug, error, info, instrument};
 
 use cedar_local_agent::public::{
     EntityProviderError, SimpleEntityProvider, UpdateProviderData, UpdateProviderDataError,
@@ -90,6 +90,7 @@ impl EntityProvider {
     ///
     /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
     /// applicable data on initialization.
+    #[instrument(skip(verified_permissions_client), err(Debug))]
     pub fn from_client(
         policy_store_id: String,
         verified_permissions_client: Client,
@@ -104,6 +105,7 @@ impl EntityProvider {
         )
     }
 
+    #[instrument(skip(config), err(Debug))]
     fn new(config: Config) -> Result<Self, ProviderError> {
         let Config {
             policy_store_id,
@@ -135,6 +137,9 @@ impl EntityProvider {
                         entities: RwLock::new(Arc::new(schema.action_entities()?)),
                     })
                 } else {
+                    debug!(
+                        "No Schema defined at Policy Store: policy_store_id={policy_store_id:?}"
+                    );
                     Ok(Self {
                         policy_store_id,
                         schema_source,
@@ -162,6 +167,7 @@ impl EntityProvider {
 
 #[async_trait]
 impl SimpleEntityProvider for EntityProvider {
+    #[instrument(skip_all, err(Debug))]
     async fn get_entities(&self, _: &Request) -> Result<Arc<Entities>, EntityProviderError> {
         Ok(self.entities.read().await.clone())
     }
@@ -169,6 +175,7 @@ impl SimpleEntityProvider for EntityProvider {
 
 #[async_trait]
 impl UpdateProviderData for EntityProvider {
+    #[instrument(skip(self), err(Debug))]
     async fn update_provider_data(&self) -> Result<(), UpdateProviderDataError> {
         let fetch_schema_result = self
             .schema_source
@@ -187,6 +194,10 @@ impl UpdateProviderData for EntityProvider {
                         .action_entities()
                         .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?
                 } else {
+                    debug!(
+                        "No Schema defined at Policy Store: policy_store_id={:?}",
+                        self.policy_store_id.clone()
+                    );
                     Entities::empty()
                 }
             }
@@ -206,7 +217,7 @@ impl UpdateProviderData for EntityProvider {
             let mut entities_data = self.entities.write().await;
             *entities_data = Arc::new(entities);
         }
-
+        info!("Updated Entity Provider");
         Ok(())
     }
 }
