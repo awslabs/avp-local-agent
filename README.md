@@ -5,9 +5,7 @@ This crate is experimental.
 The `avp-local-agent` provides Amazon Verified Permissions policy and entity providers.  These providers are used
 to build a [`simple::Authorizer`](https://github.com/cedar-policy/cedar-local-agent/blob/main/src/public/simple.rs).
 
-The `avp-local-agent` will expand in capabilities in future releases.
-
-For more information about the cedar local agent, please take a look at
+For more information about the Cedar Local Agent, please take a look at
 [`cedar-local-agent`](https://github.com/cedar-policy/cedar-local-agent).
 
 For more information about the Cedar language/project, please take a look
