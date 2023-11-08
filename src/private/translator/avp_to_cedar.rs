@@ -132,7 +132,6 @@ fn update_entity_map(
         let entity_name = EntityTypeName::from_str(identifier_type.as_str())?;
         let entity_id = EntityId::from_str(identifier_id.as_str())?;
         let entity = EntityUid::from_type_name_and_id(entity_name, entity_id);
-        debug!("Set Principal and Resource to the Entity Map: entity_name={identifier_type:?}: entity_id={identifier_id:?}");
         entity_map.insert(slot_id, entity);
     }
     Ok(())

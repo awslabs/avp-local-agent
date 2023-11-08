@@ -57,14 +57,14 @@ impl Load for ListPolicyTemplates {
                             TemplateId(template_id.to_string()),
                             policy_template_item.clone(),
                         );
-                        debug!(
-                            "Loaded Template from Policy Store: policy_template_id={template_id:?}"
-                        );
                     }
                 }
             }
         }
-
+        debug!(
+            "Loaded all Templates from Policy Store: policy_template_ids={:?}",
+            policy_template_ids_map.keys().collect::<Vec<_>>()
+        );
         Ok(policy_template_ids_map)
     }
 }

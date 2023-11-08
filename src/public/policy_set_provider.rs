@@ -11,7 +11,7 @@ use thiserror::Error;
 use tokio::runtime::Handle;
 use tokio::sync::{Mutex, RwLock};
 use tokio::task;
-use tracing::error;
+use tracing::{error, info, instrument};
 
 use cedar_local_agent::public::{
     PolicySetProviderError, SimplePolicySetProvider, UpdateProviderData, UpdateProviderDataError,
@@ -106,6 +106,7 @@ impl PolicySetProvider {
     ///
     /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
     /// applicable data on initialization.
+    #[instrument(skip(verified_permissions_client), err(Debug))]
     pub fn from_client(
         policy_store_id: String,
         verified_permissions_client: Client,
@@ -123,6 +124,7 @@ impl PolicySetProvider {
         )
     }
 
+    #[instrument(skip(config), err(Debug))]
     fn new(config: Config) -> Result<Self, ProviderError> {
         let Config {
             policy_store_id,
@@ -186,6 +188,7 @@ impl PolicySetProvider {
 
 #[async_trait]
 impl SimplePolicySetProvider for PolicySetProvider {
+    #[instrument(skip_all, err(Debug))]
     async fn get_policy_set(&self, _: &Request) -> Result<Arc<PolicySet>, PolicySetProviderError> {
         Ok(self.policy_set.read().await.clone())
     }
@@ -193,6 +196,7 @@ impl SimplePolicySetProvider for PolicySetProvider {
 
 #[async_trait]
 impl UpdateProviderData for PolicySetProvider {
+    #[instrument(skip(self), err(Debug))]
     async fn update_provider_data(&self) -> Result<(), UpdateProviderDataError> {
         let templates;
         {
@@ -246,7 +250,7 @@ impl UpdateProviderData for PolicySetProvider {
             let mut policy_set = self.policy_set.write().await;
             *policy_set = Arc::new(policy_set_data);
         }
-
+        info!("Updated Policy Set Provider");
         Ok(())
     }
 }
