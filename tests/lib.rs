@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod test {
+    use aws_sdk_verifiedpermissions::Client;
     use std::fs::File;
     use std::sync::Arc;
 
@@ -84,7 +85,49 @@ mod test {
     #[cfg_attr(not(feature = "integration-tests"), ignore)]
     async fn simple_authorizer_with_valid_data() {
         let client = verified_permissions_default_credentials(Region::new("us-east-1")).await;
+        let policy_store_id = setup_policy_store_for_test(&client).await;
+        let authorizer = create_authorizer(client.clone(), policy_store_id.clone());
 
+        let entities_file = File::open("tests/data/sweets.entities.json").unwrap();
+        let schema_file = File::open("tests/data/sweets.schema.cedar.json").unwrap();
+        let schema = Schema::from_file(schema_file).unwrap();
+        let entities = Entities::from_json_file(entities_file, Some(&schema)).unwrap();
+
+        validate_requests(&authorizer, requests(), &entities).await;
+
+        assert!(client
+            .delete_policy_store()
+            .policy_store_id(policy_store_id)
+            .send()
+            .await
+            .is_ok())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    #[cfg_attr(not(feature = "integration-tests"), ignore)]
+    async fn simple_authorizer_with_too_many_entities() {
+        let client = verified_permissions_default_credentials(Region::new("us-east-1")).await;
+        let policy_store_id = setup_policy_store_for_test(&client).await;
+        let authorizer = create_authorizer(client.clone(), policy_store_id.clone());
+
+        let entities_file = File::open("tests/data/too.many.entities.json").unwrap();
+        let schema_file = File::open("tests/data/sweets.schema.cedar.json").unwrap();
+        let schema = Schema::from_file(schema_file).unwrap();
+        let entities = Entities::from_json_file(entities_file, Some(&schema)).unwrap();
+
+        let auth_request = build_request("Eric", "read", 1);
+        let result = authorizer.is_authorized(&auth_request, &entities).await;
+        assert!(result.is_err());
+
+        assert!(client
+            .delete_policy_store()
+            .policy_store_id(policy_store_id)
+            .send()
+            .await
+            .is_ok())
+    }
+
+    async fn setup_policy_store_for_test(client: &Client) -> String {
         let policy_store_id = client
             .create_policy_store()
             .validation_settings(
@@ -182,7 +225,13 @@ mod test {
             .send()
             .await
             .unwrap();
+        policy_store_id
+    }
 
+    fn create_authorizer(
+        client: Client,
+        policy_store_id: String,
+    ) -> Authorizer<PolicySetProvider, EntityProvider> {
         let policy_set_provider =
             PolicySetProvider::from_client(policy_store_id.clone(), client.clone()).unwrap();
         let entity_provider =
@@ -195,19 +244,6 @@ mod test {
                 .build()
                 .unwrap(),
         );
-
-        let entities_file = File::open("tests/data/sweets.entities.json").unwrap();
-        let schema_file = File::open("tests/data/sweets.schema.cedar.json").unwrap();
-        let schema = Schema::from_file(schema_file).unwrap();
-        let entities = Entities::from_json_file(entities_file, Some(&schema)).unwrap();
-
-        validate_requests(&authorizer, requests(), &entities).await;
-
-        assert!(client
-            .delete_policy_store()
-            .policy_store_id(policy_store_id)
-            .send()
-            .await
-            .is_ok())
+        authorizer
     }
 }
