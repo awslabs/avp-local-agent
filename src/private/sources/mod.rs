@@ -3,8 +3,16 @@ use async_trait::async_trait;
 
 pub mod cache;
 pub mod policy;
+mod retry;
 pub mod schema;
 pub mod template;
+
+/*
+    Retry AVP API calls for a max of 5 seconds
+    There is some randomness in the exponential backoff algorithm but this will likely result in
+    a maximum of 4-6 retries in the worst case
+*/
+pub static API_RETRY_TIMEOUT_IN_SECONDS: u64 = 5;
 
 /// Type values for cache changes
 #[derive(Debug, Eq, PartialEq)]
