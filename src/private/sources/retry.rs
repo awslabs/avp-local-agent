@@ -17,10 +17,10 @@ pub struct BackoffStrategy {
 
 impl BackoffStrategy {
     pub(crate) fn get_backoff(&self) -> ExponentialBackoff {
-        let mut exponential_backoff = ExponentialBackoff::default();
-        exponential_backoff.max_elapsed_time =
-            Option::from(Duration::from_secs(self.time_limit_seconds));
-        exponential_backoff
+        ExponentialBackoff {
+            max_elapsed_time: Option::from(Duration::from_secs(self.time_limit_seconds)),
+            ..Default::default()
+        }
     }
 }
 
