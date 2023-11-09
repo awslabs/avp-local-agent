@@ -11,8 +11,8 @@ RUSTFLAGS="-D warnings -F unsafe-code" cargo build --verbose && \
 echo ">>>> cargo doc --all-features --no-deps" && \
 cargo doc --all-features --no-deps && \
 
-echo ">>>> cargo clippy --all-features" && \
-cargo clippy --all-features && \
+echo ">>>> cargo clippy --all-features --tests" && \
+RUSTFLAGS="-D warnings" cargo clippy --all-features --tests && \
 
 echo ">>>> cargo test --verbose" && \
 cargo test --verbose && \
