@@ -11,6 +11,7 @@ use crate::private::translator::avp_to_cedar::Template;
 use crate::private::types::policy_store_id::PolicyStoreId;
 use crate::private::types::template_id::TemplateId;
 
+use crate::private::sources::retry::BackoffStrategy;
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
 use std::collections::HashMap;
@@ -51,7 +52,7 @@ impl VerifiedPermissionsTemplateSource {
     pub fn from(client: Client) -> Self {
         Self {
             loader: ListPolicyTemplates::new(client.clone()),
-            reader: GetPolicyTemplate::new(client),
+            reader: GetPolicyTemplate::new(client, BackoffStrategy::default()),
             cache: GetPolicyTemplateOutputCache::new(),
         }
     }

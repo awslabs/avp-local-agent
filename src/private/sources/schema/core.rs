@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
 use tracing::{debug, instrument};
 
+use crate::private::sources::retry::BackoffStrategy;
 use crate::private::sources::schema::error::SchemaSourceException;
 use crate::private::sources::schema::reader::GetSchema;
 use crate::private::sources::Read;
@@ -37,7 +38,7 @@ impl VerifiedPermissionsSchemaSource {
     /// Constructs a new `VerifiedPermissionsSchemaSource` from a `Client`.
     pub fn from(client: Client) -> Self {
         Self {
-            reader: GetSchema::new(client),
+            reader: GetSchema::new(client, BackoffStrategy::default()),
         }
     }
 }

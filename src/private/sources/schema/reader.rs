@@ -11,21 +11,24 @@ use aws_smithy_http::result::SdkError;
 use tracing::instrument;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving the schema.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GetSchema {
     avp_client: Client,
+    backoff_strategy: BackoffStrategy,
 }
 
 impl GetSchema {
     /// Create a new `GetSchema` instance with the given client.
-    pub fn new(avp_client: Client) -> Self {
-        Self { avp_client }
+    pub fn new(avp_client: Client, backoff_strategy: BackoffStrategy) -> Self {
+        Self {
+            avp_client,
+            backoff_strategy,
+        }
     }
 
     async fn get_schema(
         &self,
         policy_store_id: &String,
-        backoff_strategy: BackoffStrategy,
     ) -> Result<GetSchemaOutput, GetSchemaError> {
         let get_policy_operation = || async {
             let get_policy_result = self
@@ -38,7 +41,7 @@ impl GetSchema {
             Ok(get_policy_result)
         };
 
-        backoff::future::retry(backoff_strategy.get_backoff(), get_policy_operation).await
+        backoff::future::retry(self.backoff_strategy.get_backoff(), get_policy_operation).await
     }
 }
 
@@ -50,14 +53,13 @@ impl Read for GetSchema {
 
     #[instrument(skip(self), err(Debug))]
     async fn read(&self, policy_store_id: Self::Input) -> Result<Self::Output, Self::Exception> {
-        Ok(self
-            .get_schema(&policy_store_id.to_string(), BackoffStrategy::default())
-            .await?)
+        Ok(self.get_schema(&policy_store_id.to_string()).await?)
     }
 }
 
 #[cfg(test)]
 mod test {
+    use crate::private::sources::retry::BackoffStrategy;
     use crate::private::sources::schema::reader::GetSchema;
     use crate::private::sources::test::{build_client, build_empty_event, build_event};
     use crate::private::sources::Read;
@@ -101,7 +103,7 @@ mod test {
 
         let events = vec![build_event(&request, &response, StatusCode::OK)];
         let client = build_client(events);
-        let schema_reader = GetSchema::new(client);
+        let schema_reader = GetSchema::new(client, BackoffStrategy::default());
         let result = schema_reader.read(policy_store_id).await.unwrap();
 
         assert_eq!(response.schema, result.schema.unwrap());
@@ -118,7 +120,7 @@ mod test {
         let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
 
         let client = build_client(events);
-        let schema_reader = GetSchema::new(client);
+        let schema_reader = GetSchema::new(client, BackoffStrategy::default());
         let result = schema_reader.read(policy_store_id).await;
         assert!(result.is_err());
     }

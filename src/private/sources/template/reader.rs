@@ -17,22 +17,25 @@ use crate::private::types::template_id::TemplateId;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving the
 /// contents of a single policy template.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GetPolicyTemplate {
     avp_client: Client,
+    backoff_strategy: BackoffStrategy,
 }
 
 impl GetPolicyTemplate {
     /// Create a new `GetPolicyTemplate` instance with the given client.
-    pub fn new(avp_client: Client) -> Self {
-        Self { avp_client }
+    pub fn new(avp_client: Client, backoff_strategy: BackoffStrategy) -> Self {
+        Self {
+            avp_client,
+            backoff_strategy,
+        }
     }
 
     async fn get_policy_template(
         &self,
         policy_template_id: &String,
         policy_store_id: &String,
-        backoff_strategy: BackoffStrategy,
     ) -> Result<GetPolicyTemplateOutput, GetPolicyTemplateError> {
         let get_policy_template_operation = || async {
             let get_policy_result = self
@@ -47,7 +50,7 @@ impl GetPolicyTemplate {
         };
 
         backoff::future::retry(
-            backoff_strategy.get_backoff(),
+            self.backoff_strategy.get_backoff(),
             get_policy_template_operation,
         )
         .await
@@ -85,7 +88,6 @@ impl Read for GetPolicyTemplate {
             .get_policy_template(
                 &input.policy_template_id.to_string(),
                 &input.policy_store_id.to_string(),
-                BackoffStrategy::default(),
             )
             .await?)
     }
@@ -93,6 +95,7 @@ impl Read for GetPolicyTemplate {
 
 #[cfg(test)]
 mod test {
+    use crate::private::sources::retry::BackoffStrategy;
     use http::StatusCode;
 
     use crate::private::sources::template::core::test::{
@@ -127,7 +130,7 @@ mod test {
         let events = vec![build_event(&request, &response, StatusCode::OK)];
 
         let client = build_client(events);
-        let template_reader = GetPolicyTemplate::new(client);
+        let template_reader = GetPolicyTemplate::new(client, BackoffStrategy::default());
         let read_input = GetPolicyTemplateInput {
             policy_store_id,
             policy_template_id,
@@ -150,7 +153,7 @@ mod test {
         let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
 
         let client = build_client(events);
-        let template_reader = GetPolicyTemplate::new(client);
+        let template_reader = GetPolicyTemplate::new(client, BackoffStrategy::default());
         let read_input = GetPolicyTemplateInput {
             policy_store_id,
             policy_template_id,

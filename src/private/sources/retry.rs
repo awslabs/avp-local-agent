@@ -21,6 +21,7 @@ For more information about the Backoff implementation see: <https://docs.rs/back
 All defaults are used except `MAX_ELAPSED_TIME_MILLIS` which we are making customizable
 Other defaults: <https://docs.rs/backoff/latest/backoff/default/index.html>
  */
+#[derive(Debug)]
 pub struct BackoffStrategy {
     pub(crate) time_limit_seconds: u64,
 }
