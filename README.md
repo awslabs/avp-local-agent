@@ -115,6 +115,8 @@ Here is an example:
 }
 ```
 
+Instructions on how to create an assume IAM policies are available [here](https://repost.aws/knowledge-center/iam-assume-role-cli)
+
 ## Quick Start
 
 Build an authorizer that uses an existing Amazon Verified Permissions 
