@@ -36,7 +36,7 @@ a credentials' provider. See `Managing AWS Credentials` below for more details o
 
 ### Managing AWS Credentials
 
-The `avp-local-agent` invokes Amazon Verified Permissions APIs through an AWS SDK client in order fetch remote policy 
+The `avp-local-agent` invokes Amazon Verified Permissions APIs through an AWS SDK client in order to fetch remote policy 
 data and refresh local caches. For local development of the agent, the recommended practice for managing AWS credentials 
 for the AWS SDK client is to store these credentials locally on the machine where the tests will be invoked. For example,
 
@@ -69,7 +69,8 @@ let creds = SharedCredentialsProvider::new(
 );
 ```
 
-This struct in the AWS rust SDK is what searches for your AWS credentials locally, it has a set resolution order defined here depending on which credentials provider is used:
+Overall, credential providers can be used to search for your AWS credentials locally in various locations, 
+with resolution orders: 
 
 1. Environment variables: `EnvironmentVariableCredentialsProvider`
 2. Shared config (~/.aws/config, ~/.aws/credentials): `SharedConfigCredentialsProvider`
@@ -79,6 +80,13 @@ This struct in the AWS rust SDK is what searches for your AWS credentials locall
 
 If AWS credentials are stored in environment variables say if the agent deployed and running on an EC2 instance, use
 An `EnvironmentVariableCredentialsProvider` instead of a `SharedConfigCredentialsProvider`.
+
+```rust
+let creds = SharedCredentialsProvider::new( 
+    EnvironmentVariableCredentialsProvider::new()
+); 
+let client = verified_permissions_with_credentials(Region::new("us-east-1"), creds).await;
+```
 
 ## Quick Start
 
