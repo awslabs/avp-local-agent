@@ -17,9 +17,9 @@ The reason for this is that there are certain cases where we may need to retry s
 with a long backoff since AVP has very low TPS limits and we expect to be throttled for certain
 operations. We do not want to allow these high numbers of retries universally
 
-For more information about the Backoff implementation see: https://docs.rs/backoff/latest/backoff/
-All defaults are used except MAX_ELAPSED_TIME_MILLIS which we are making customizable
-Other defaults: https://docs.rs/backoff/latest/backoff/default/index.html
+For more information about the Backoff implementation see: <https://docs.rs/backoff/latest/backoff/>
+All defaults are used except `MAX_ELAPSED_TIME_MILLIS` which we are making customizable
+Other defaults: <https://docs.rs/backoff/latest/backoff/default/index.html>
  */
 pub struct BackoffStrategy {
     pub(crate) time_limit_seconds: u64,
