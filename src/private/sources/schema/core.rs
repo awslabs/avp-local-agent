@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
 use tracing::{debug, instrument};
 
+use crate::private::sources::retry::BackoffStrategy;
 use crate::private::sources::schema::error::SchemaSourceException;
 use crate::private::sources::schema::reader::GetSchema;
 use crate::private::sources::Read;

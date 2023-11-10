@@ -1,10 +1,11 @@
 //! This module implements the required functionality to read the schema from a specific
 //! Amazon Verified Permissions Policy Store.
+use crate::private::sources::retry::BackoffStrategy;
 use crate::private::sources::schema::error::SchemaException;
 use crate::private::sources::Read;
 use crate::private::types::policy_store_id::PolicyStoreId;
 use async_trait::async_trait;
-use aws_sdk_verifiedpermissions::operation::get_schema::GetSchemaOutput;
+use aws_sdk_verifiedpermissions::operation::get_schema::{GetSchemaError, GetSchemaOutput};
 use aws_sdk_verifiedpermissions::Client;
 use aws_smithy_http::result::SdkError;
 use tracing::instrument;
@@ -20,6 +21,25 @@ impl GetSchema {
     pub fn new(avp_client: Client) -> Self {
         Self { avp_client }
     }
+
+    async fn get_schema(
+        &self,
+        policy_store_id: &String,
+        backoff_strategy: BackoffStrategy,
+    ) -> Result<GetSchemaOutput, GetSchemaError> {
+        let get_policy_operation = || async {
+            let get_policy_result = self
+                .avp_client
+                .get_schema()
+                .policy_store_id(policy_store_id)
+                .send()
+                .await
+                .map_err(SdkError::into_service_error)?;
+            Ok(get_policy_result)
+        };
+
+        backoff::future::retry(backoff_strategy.get_backoff(), get_policy_operation).await
+    }
 }
 
 #[async_trait]
@@ -31,12 +51,8 @@ impl Read for GetSchema {
     #[instrument(skip(self), err(Debug))]
     async fn read(&self, policy_store_id: Self::Input) -> Result<Self::Output, Self::Exception> {
         Ok(self
-            .avp_client
-            .get_schema()
-            .policy_store_id(policy_store_id.to_string())
-            .send()
-            .await
-            .map_err(SdkError::into_service_error)?)
+            .get_schema(&policy_store_id.to_string(), BackoffStrategy::default())
+            .await?)
     }
 }
 

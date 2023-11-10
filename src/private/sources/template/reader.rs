@@ -2,11 +2,14 @@
 //! verified permissions.
 
 use async_trait::async_trait;
-use aws_sdk_verifiedpermissions::operation::get_policy_template::GetPolicyTemplateOutput;
+use aws_sdk_verifiedpermissions::operation::get_policy_template::{
+    GetPolicyTemplateError, GetPolicyTemplateOutput,
+};
 use aws_sdk_verifiedpermissions::Client;
 use aws_smithy_http::result::SdkError;
 use tracing::instrument;
 
+use crate::private::sources::retry::BackoffStrategy;
 use crate::private::sources::template::error::TemplateException;
 use crate::private::sources::Read;
 use crate::private::types::policy_store_id::PolicyStoreId;
@@ -23,6 +26,31 @@ impl GetPolicyTemplate {
     /// Create a new `GetPolicyTemplate` instance with the given client.
     pub fn new(avp_client: Client) -> Self {
         Self { avp_client }
+    }
+
+    async fn get_policy_template(
+        &self,
+        policy_template_id: &String,
+        policy_store_id: &String,
+        backoff_strategy: BackoffStrategy,
+    ) -> Result<GetPolicyTemplateOutput, GetPolicyTemplateError> {
+        let get_policy_template_operation = || async {
+            let get_policy_result = self
+                .avp_client
+                .get_policy_template()
+                .policy_store_id(policy_store_id)
+                .policy_template_id(policy_template_id)
+                .send()
+                .await
+                .map_err(SdkError::into_service_error)?;
+            Ok(get_policy_result)
+        };
+
+        backoff::future::retry(
+            backoff_strategy.get_backoff(),
+            get_policy_template_operation,
+        )
+        .await
     }
 }
 
@@ -54,13 +82,12 @@ impl Read for GetPolicyTemplate {
     #[instrument(skip(self), err(Debug))]
     async fn read(&self, input: Self::Input) -> Result<Self::Output, Self::Exception> {
         Ok(self
-            .avp_client
-            .get_policy_template()
-            .policy_store_id(input.policy_store_id.to_string())
-            .policy_template_id(input.policy_template_id.to_string())
-            .send()
-            .await
-            .map_err(SdkError::into_service_error)?)
+            .get_policy_template(
+                &input.policy_template_id.to_string(),
+                &input.policy_store_id.to_string(),
+                BackoffStrategy::default(),
+            )
+            .await?)
     }
 }
 
