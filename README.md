@@ -100,7 +100,7 @@ Here is an example:
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "VisualEditor0",
+            "Sid": "AVPLocalAgentPolicy",
             "Effect": "Allow",
                 "Action": [
                     "verifiedpermissions:ListPolicies",
