@@ -21,7 +21,8 @@ pub struct GetSchema {
 
 impl GetSchema {
     /// Create a new `GetSchema` instance with the given client and with
-    ///     a particular `BackoffStrategy` for handling retries    pub fn new(avp_client: Client, backoff_strategy: BackoffStrategy) -> Self {
+    ///     a particular `BackoffStrategy` for handling retries
+    pub fn new(avp_client: Client, backoff_strategy: BackoffStrategy) -> Self {
         Self {
             avp_client,
             backoff_strategy,
