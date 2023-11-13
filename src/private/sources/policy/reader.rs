@@ -15,6 +15,8 @@ use crate::private::types::policy_store_id::PolicyStoreId;
 use crate::private::sources::retry::BackoffStrategy;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving a policy.
+/// `Client` is the AVP client
+/// `BackoffStrategy` defines how we will perform retries with exponential backoff
 #[derive(Debug)]
 pub struct GetPolicy {
     avp_client: Client,
@@ -22,7 +24,8 @@ pub struct GetPolicy {
 }
 
 impl GetPolicy {
-    /// Create a new `GetPolicy` instance with the given client
+    /// Create a new `GetPolicy` instance with the given client and with
+    ///     a particular `BackoffStrategy` for handling retries
     pub fn new(avp_client: Client, backoff_strategy: BackoffStrategy) -> Self {
         Self {
             avp_client,
