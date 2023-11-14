@@ -11,17 +11,16 @@ use aws_smithy_http::result::SdkError;
 use tracing::instrument;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving the schema.
-/// `Client` is the AVP client
-/// `BackoffStrategy` defines how we will perform retries with exponential backoff
 #[derive(Debug)]
 pub struct GetSchema {
+    /// Provides a `Client` to fetch policies from AVP.
     avp_client: Client,
+    /// `BackoffStrategy` defines how we will perform retries with exponential backoff
     backoff_strategy: BackoffStrategy,
 }
 
 impl GetSchema {
-    /// Create a new `GetSchema` instance with the given client and with
-    ///     a particular `BackoffStrategy` for handling retries
+    /// Create a new `GetSchema` instance
     pub fn new(avp_client: Client, backoff_strategy: BackoffStrategy) -> Self {
         Self {
             avp_client,
