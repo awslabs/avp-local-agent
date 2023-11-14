@@ -88,6 +88,35 @@ let creds = SharedCredentialsProvider::new(
 let client = verified_permissions_with_credentials(Region::new("us-east-1"), creds).await;
 ```
 
+Any credentials provider can be passed in, or you can make your own credentials provider. 
+
+#### Recommended IAM Policy
+
+For security purposes, we recommend that you create a user with the least privileged IAM policy for the local agent to connect with. 
+Here is an example:
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AVPLocalAgentPolicy",
+            "Effect": "Allow",
+                "Action": [
+                    "verifiedpermissions:ListPolicies",
+                    "verifiedpermissions:ListPolicyTemplates",
+                    "verifiedpermissions:GetPolicyTemplate",
+                    "verifiedpermissions:GetPolicy",
+                    "verifiedpermissions:GetSchema"
+                ],
+            "Resource": "arn:aws:verifiedpermissions::<account_id>:policy-store/<policy store id>"
+        }
+    ]
+}
+```
+
+Instructions on how to create an assume IAM policies are available [here](https://repost.aws/knowledge-center/iam-assume-role-cli)
+
 ## Quick Start
 
 Build an authorizer that uses an existing Amazon Verified Permissions 
