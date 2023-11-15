@@ -14,6 +14,7 @@ use crate::private::sources::policy::{
     loader::ListPolicies,
     reader::{GetPolicy, GetPolicyInput},
 };
+use crate::private::sources::retry::BackoffStrategy;
 use crate::private::sources::{Cache, CacheChange, Load, Read};
 use crate::private::translator::avp_to_cedar::Policy;
 use crate::private::types::policy_id::PolicyId;
@@ -63,7 +64,7 @@ impl VerifiedPermissionsPolicySource {
     pub fn from(client: Client) -> Self {
         Self {
             loader: ListPolicies::new(client.clone()),
-            reader: GetPolicy::new(client),
+            reader: GetPolicy::new(client, BackoffStrategy::default()),
             cache: GetPolicyOutputCache::new(),
         }
     }

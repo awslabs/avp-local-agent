@@ -1,5 +1,12 @@
 #[cfg(test)]
 mod test {
+    use aws_sdk_verifiedpermissions::error::SdkError;
+    use aws_sdk_verifiedpermissions::operation::create_policy::{
+        CreatePolicyError, CreatePolicyOutput,
+    };
+    use aws_sdk_verifiedpermissions::operation::create_policy_store::{
+        CreatePolicyStoreError, CreatePolicyStoreOutput,
+    };
     use aws_sdk_verifiedpermissions::Client;
     use std::fs::File;
     use std::sync::Arc;
@@ -9,6 +16,7 @@ mod test {
         ValidationMode, ValidationSettings,
     };
     use aws_types::region::Region;
+    use backoff::ExponentialBackoff;
     use cedar_policy::{Context, Entities, Request, Schema};
     use cedar_policy_core::authorizer::Decision;
 
@@ -85,7 +93,30 @@ mod test {
     #[cfg_attr(not(feature = "integration-tests"), ignore)]
     async fn simple_authorizer_with_valid_data() {
         let client = verified_permissions_default_credentials(Region::new("us-east-1")).await;
-        let policy_store_id = setup_policy_store_for_test(&client).await;
+        let (policy_store_id, _, _) = setup_policy_store_for_test(&client).await;
+        let authorizer = create_authorizer(client.clone(), policy_store_id.clone());
+
+        let entities_file = File::open("tests/data/sweets.entities.json").unwrap();
+        let schema_file = File::open("tests/data/sweets.schema.cedar.json").unwrap();
+        let schema = Schema::from_file(schema_file).unwrap();
+        let entities = Entities::from_json_file(entities_file, Some(&schema)).unwrap();
+
+        validate_requests(&authorizer, requests(), &entities).await;
+
+        assert!(client
+            .delete_policy_store()
+            .policy_store_id(policy_store_id)
+            .send()
+            .await
+            .is_ok())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    #[cfg_attr(not(feature = "integration-tests"), ignore)]
+    async fn simple_authorizer_with_many_policies() {
+        let client = verified_permissions_default_credentials(Region::new("us-east-1")).await;
+        let (policy_store_id, editor_template_id, _) = setup_policy_store_for_test(&client).await;
+        let _ = add_200_policies(&client, &policy_store_id, &editor_template_id).await;
         let authorizer = create_authorizer(client.clone(), policy_store_id.clone());
 
         let entities_file = File::open("tests/data/sweets.entities.json").unwrap();
@@ -107,7 +138,7 @@ mod test {
     #[cfg_attr(not(feature = "integration-tests"), ignore)]
     async fn simple_authorizer_with_too_many_entities() {
         let client = verified_permissions_default_credentials(Region::new("us-east-1")).await;
-        let policy_store_id = setup_policy_store_for_test(&client).await;
+        let (policy_store_id, _, _) = setup_policy_store_for_test(&client).await;
         let authorizer = create_authorizer(client.clone(), policy_store_id.clone());
 
         let entities_file = File::open("tests/data/too.many.entities.json").unwrap();
@@ -127,15 +158,8 @@ mod test {
             .is_ok())
     }
 
-    async fn setup_policy_store_for_test(client: &Client) -> String {
-        let policy_store_id = client
-            .create_policy_store()
-            .validation_settings(
-                ValidationSettings::builder()
-                    .mode(ValidationMode::Off)
-                    .build(),
-            )
-            .send()
+    async fn setup_policy_store_for_test(client: &Client) -> (String, String, String) {
+        let policy_store_id = create_policy_store(client)
             .await
             .unwrap()
             .policy_store_id
@@ -164,54 +188,25 @@ mod test {
             .unwrap();
 
         for (user, box_id) in [("Mike", "1"), ("Eric", "2")] {
-            client
-                .create_policy()
-                .policy_store_id(policy_store_id.clone())
-                .definition(PolicyDefinition::TemplateLinked(
-                    TemplateLinkedPolicyDefinition::builder()
-                        .policy_template_id(viewer_template_id.clone())
-                        .principal(
-                            EntityIdentifier::builder()
-                                .entity_type("User")
-                                .entity_id(user)
-                                .build(),
-                        )
-                        .resource(
-                            EntityIdentifier::builder()
-                                .entity_type("Box")
-                                .entity_id(box_id)
-                                .build(),
-                        )
-                        .build(),
-                ))
-                .send()
-                .await
-                .unwrap();
-        }
-
-        client
-            .create_policy()
-            .policy_store_id(policy_store_id.clone())
-            .definition(PolicyDefinition::TemplateLinked(
-                TemplateLinkedPolicyDefinition::builder()
-                    .policy_template_id(editor_template_id.clone())
-                    .principal(
-                        EntityIdentifier::builder()
-                            .entity_type("User")
-                            .entity_id("Mike")
-                            .build(),
-                    )
-                    .resource(
-                        EntityIdentifier::builder()
-                            .entity_type("Box")
-                            .entity_id("1")
-                            .build(),
-                    )
-                    .build(),
-            ))
-            .send()
+            add_policy(
+                client,
+                &policy_store_id,
+                &viewer_template_id,
+                &user.to_string(),
+                &box_id.to_string(),
+            )
             .await
             .unwrap();
+        }
+        add_policy(
+            client,
+            &policy_store_id,
+            &editor_template_id,
+            &"Mike".to_string(),
+            &"1".to_string(),
+        )
+        .await
+        .unwrap();
 
         client
             .create_policy()
@@ -225,7 +220,7 @@ mod test {
             .send()
             .await
             .unwrap();
-        policy_store_id
+        (policy_store_id, editor_template_id, viewer_template_id)
     }
 
     fn create_authorizer(
@@ -245,5 +240,77 @@ mod test {
                 .unwrap(),
         );
         authorizer
+    }
+
+    async fn add_200_policies(client: &Client, policy_store_id: &String, template_id: &String) {
+        let policy_pairs = (100..300).map(|i| ("Mike", i.to_string()));
+        for (user, box_id) in policy_pairs {
+            let _ = add_policy(
+                client,
+                policy_store_id,
+                template_id,
+                &user.to_string(),
+                &box_id.to_string(),
+            )
+            .await;
+        }
+    }
+
+    async fn add_policy(
+        client: &Client,
+        policy_store_id: &String,
+        template_id: &String,
+        user: &String,
+        box_id: &String,
+    ) -> Result<CreatePolicyOutput, CreatePolicyError> {
+        let backoff_strategy = ExponentialBackoff::default();
+        let add_policy_operation = || async {
+            let result = client
+                .create_policy()
+                .policy_store_id(policy_store_id)
+                .definition(PolicyDefinition::TemplateLinked(
+                    TemplateLinkedPolicyDefinition::builder()
+                        .policy_template_id(template_id)
+                        .principal(
+                            EntityIdentifier::builder()
+                                .entity_type("User")
+                                .entity_id(user)
+                                .build(),
+                        )
+                        .resource(
+                            EntityIdentifier::builder()
+                                .entity_type("Box")
+                                .entity_id(box_id)
+                                .build(),
+                        )
+                        .build(),
+                ))
+                .send()
+                .await
+                .map_err(SdkError::into_service_error)?;
+            Ok(result)
+        };
+
+        backoff::future::retry(backoff_strategy, add_policy_operation).await
+    }
+
+    async fn create_policy_store(
+        client: &Client,
+    ) -> Result<CreatePolicyStoreOutput, CreatePolicyStoreError> {
+        let backoff_strategy = ExponentialBackoff::default();
+        let create_policy_store_op = || async {
+            let result = client
+                .create_policy_store()
+                .validation_settings(
+                    ValidationSettings::builder()
+                        .mode(ValidationMode::Off)
+                        .build(),
+                )
+                .send()
+                .await
+                .map_err(SdkError::into_service_error)?;
+            Ok(result)
+        };
+        backoff::future::retry(backoff_strategy, create_policy_store_op).await
     }
 }

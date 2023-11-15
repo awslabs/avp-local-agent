@@ -15,22 +15,27 @@ use crate::private::types::policy_store_id::PolicyStoreId;
 use crate::private::sources::retry::BackoffStrategy;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving a policy.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GetPolicy {
+    /// Provides a `Client` to fetch policies from AVP.
     avp_client: Client,
+    /// `BackoffStrategy` defines how we will perform retries with exponential backoff
+    backoff_strategy: BackoffStrategy,
 }
 
 impl GetPolicy {
-    /// Create a new `GetPolicy` instance with the given client
-    pub fn new(avp_client: Client) -> Self {
-        Self { avp_client }
+    /// Create a new `GetPolicy` instance
+    pub fn new(avp_client: Client, backoff_strategy: BackoffStrategy) -> Self {
+        Self {
+            avp_client,
+            backoff_strategy,
+        }
     }
 
     async fn get_policy(
         &self,
         policy_id: &String,
         policy_store_id: &String,
-        backoff_strategy: BackoffStrategy,
     ) -> Result<GetPolicyOutput, GetPolicyError> {
         let get_policy_operation = || async {
             let get_policy_result = self
@@ -44,7 +49,7 @@ impl GetPolicy {
             Ok(get_policy_result)
         };
 
-        backoff::future::retry(backoff_strategy.get_backoff(), get_policy_operation).await
+        backoff::future::retry(self.backoff_strategy.get_backoff(), get_policy_operation).await
     }
 }
 
@@ -78,7 +83,6 @@ impl Read for GetPolicy {
             .get_policy(
                 &input.policy_id.to_string(),
                 &input.policy_store_id.to_string(),
-                BackoffStrategy::default(),
             )
             .await?)
     }
@@ -94,6 +98,7 @@ mod tests {
         PolicyDefinitionDetailRaw, StaticPolicyDefinitionDetailRaw,
     };
     use crate::private::sources::policy::reader::{GetPolicy, GetPolicyInput};
+    use crate::private::sources::retry::BackoffStrategy;
     use crate::private::sources::test::{build_client, build_event};
     use crate::private::sources::Read;
     use crate::private::types::policy_id::PolicyId;
@@ -130,7 +135,7 @@ mod tests {
         let events = vec![build_event(&request, &response, StatusCode::OK)];
 
         let client = build_client(events);
-        let policy_reader = GetPolicy::new(client);
+        let policy_reader = GetPolicy::new(client, BackoffStrategy::default());
         let read_input = GetPolicyInput {
             policy_store_id: policy_store_id.clone(),
             policy_id: policy_id.clone(),
@@ -182,7 +187,7 @@ mod tests {
         )];
 
         let client = build_client(events);
-        let policy_reader = GetPolicy::new(client);
+        let policy_reader = GetPolicy::new(client, BackoffStrategy::default());
         let read_input = GetPolicyInput {
             policy_store_id,
             policy_id,
