@@ -197,6 +197,109 @@ cargo test --features integration-tests
 
 Note: The integration tests create Amazon Verified Permissions resources within the account and region specified `us-east-1`.
 
+## General Security Notes
+
+The following is a high level description of some security concerns to keep in mind when using the `avp-local-agent` 
+to enable local evaluation of Cedar policies stored in Amazon Verified Permissions Policy Stores.
+
+### Trusted Computing Environment
+
+The `avp-local-agent` is a mere library that customers can wrap in say an HTTP server and deploy onto a fleet of hosts.
+It is, therefore, left to users to take any and all necessary precautions to ensure those security concerns beyond what 
+the `avp-local-agent` is capable of enforcing are met. This includes:
+
+1. Ensuring that AWS Credentials are not stored in any source code that wraps the agent.
+2. Filesystem permissions for on-disk locations of OCSF logs follow least-privilege permissions, see TODO.
+3. The `avp-local-agent` is configured securely, see TODO.
+
+### Limiting Access to Local Data Files
+
+The local authorizer provided in this crate only needs **read** access to locally stored policy set, entity store and
+schema files.
+
+Write access to local data files (policies, entities and schema) should be restricted only to users that really
+need to make changes to these files, for example, to add new entities and remove old policies.
+
+In the case where there are no restrictions to access local data files, a malicious Operating System (OS) user can add or
+remove policies, modify entities attributes, make slight changes that are hard to identify, or even change the policies
+to deny all actions. To illustrate this possibility, consider a cedar file with the following cedar policies from the
+[Example Application](## Example application):
+
+```
+@id("mike-edit-box-1")
+permit (
+    principal == User::"Mike",
+    action == Action::"update",
+    resource == Box::"1"
+);
+
+@id("eric-view-box-9")
+permit (
+    principal == User::"Eric",
+    action == Action::"read",
+    resource == Box::"9"
+);
+```
+
+In this example, principal "Mike" is allowed to perform "update" on resource box "1" while principal "Eric" is allowed to
+perform "read" on resource box "9". Now, consider a malicious OS user adding the statement below to the same policies file.
+
+```
+@id("ill-intentioned-policy")
+forbid(principal, action, resource);
+```
+
+In the next policies file refresh cycle, the [`file::PolicySetProvider`](./src/public/file/policy_set_provider.rs) will refresh policies file content to memory,
+and the local authorizer will deny any action from any principal.
+
+#### How to avoid this problem from happening?
+
+In order to prevent this kind of security issue, you must restrict read access to the data files, and more important,
+restrict write access to these files. Only users or groups that really need to write changes to policies,
+or entities should be allowed to do so (for example, another agent that fetches policies from an internal application).
+
+For one example on how to avoid this problem, say you have the following folder structure for a local-agent built with
+`avp-local-agent` crate.
+
+```
+authz-agent/
+  |- authz_daemon (executable)
+
+authz-local-data/
+  |- policies.cedar
+  |- entities.json
+  |- schema.json
+```
+
+Now suppose you have an OS user to execute the "authz_daemon" called "authz-daemon" from user group "authz-ops".
+And you have a user called "authz-ops-admin" from the same user group "authz-ops" that will be able to update data files.
+
+Then, make "authz-ops-admin" the owner of **authz-local-data** folder with:
+
+```bash
+$ chown -R authz-ops-admin:authz-ops authz-local-data
+```
+
+And make "authz-daemon" user the owner of **authz-agent** folder with:
+
+```bash
+$ chown -R authz-daemon:authz-ops authz-agent
+```
+
+Finally, make **authz-local-data** readable by everyone and writable by the owner only:
+
+```bash
+$ chmod u=rwx,go=r authz-local-data
+```
+
+### OCSF Log directory permissions
+
+TODO
+
+### Secure Agent Configuration
+
+TODO
+
 ## License
 
 This project is licensed under the Apache-2.0 License.
