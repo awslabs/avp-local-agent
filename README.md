@@ -215,7 +215,7 @@ the `avp-local-agent` is capable of enforcing are met. This includes:
 ### OCSF Log directory permissions
 
 
-The local authorizer provided in this crate will only require **write** access to the directory where it will write OCFS logs to.
+The local authorizer provided in this crate will require **read** and **write** access to the directory where it will write OCFS logs to.
 
 Suppose we have the following directory structure:
 
@@ -228,26 +228,23 @@ ocsf-log-dir/
   ...
 ```
 
-Now suppose you have an OS user to execute the "authz_daemon" called "authz-daemon" from user group "authz-ops".
-We should also create a group called authz-logs-reader.
+Now suppose you have an OS user to execute the "authz_daemon" called "authz-daemon".
 
-And make "authz-daemon" user the owner of **authz-agent** and **ocsf-log-dir** folder with:
-
-```bash
-$ chown -R authz-daemon authz-agent ocsf-log-dir
-```
-
-We will also make the **ocsf-log-dir** part of the **authz-log-reader** group:
-```bash
-$ usermod -a -G authz-log-reader authz-daemon
-$ chgrp -R authz-log-reader ocsf-log-dir
-```
-
-We will now make **ocsf-log-dir** writable by the owner but readable by anyone in the **authz-log-reader** group:
+And make "authz-daemon" user the owner of  **ocsf-log-dir** folder with:
 
 ```bash
-$ chmod u=wrx,g=r,o= ocsf-log-dir
+$ chown -R authz-daemon ocsf-log-dir
 ```
+
+We will now make **ocsf-log-dir** readable and writable by the owner but not accessible to anyone else.
+
+```bash
+$ chmod u=wrx,g=,o= ocsf-log-dir
+```
+
+This means that only the user that runs the agent will be able to see the logs.
+The reason we recommend these restrictive permissions is that in general, most systems that handle logs such as the [AWS Cloudwatch Agent](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html) run as root (see [documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Agent-common-scenarios.html)).
+This means that the Cloudwatch Agent (or whatever other system you choose) will be able to read the logs but other applications running on the system with non-root users will not.
 
 ### Secure Agent Configuration
 
