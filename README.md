@@ -209,96 +209,61 @@ It is, therefore, left to users to take any and all necessary precautions to ens
 the `avp-local-agent` is capable of enforcing are met. This includes:
 
 1. Ensuring that AWS Credentials are not stored in any source code that wraps the agent.
-2. Filesystem permissions for on-disk locations of OCSF logs follow least-privilege permissions, see TODO.
-3. The `avp-local-agent` is configured securely, see TODO.
+2. Filesystem permissions for on-disk locations of OCSF logs follow least-privilege permissions, see [OCSF Log directory permissions](#ocsf-log-directory-permissions).
+3. The `avp-local-agent` is configured securely, see [Secure Agent Configuration](#secure-agent-configuration).
 
-### Limiting Access to Local Data Files
+### OCSF Log directory permissions
 
-The local authorizer provided in this crate only needs **read** access to locally stored policy set, entity store and
-schema files.
 
-Write access to local data files (policies, entities and schema) should be restricted only to users that really
-need to make changes to these files, for example, to add new entities and remove old policies.
+The local authorizer provided in this crate will only require **write** access to the directory where it will write OCFS logs to.
 
-In the case where there are no restrictions to access local data files, a malicious Operating System (OS) user can add or
-remove policies, modify entities attributes, make slight changes that are hard to identify, or even change the policies
-to deny all actions. To illustrate this possibility, consider a cedar file with the following cedar policies from the
-[Example Application](## Example application):
-
-```
-@id("mike-edit-box-1")
-permit (
-    principal == User::"Mike",
-    action == Action::"update",
-    resource == Box::"1"
-);
-
-@id("eric-view-box-9")
-permit (
-    principal == User::"Eric",
-    action == Action::"read",
-    resource == Box::"9"
-);
-```
-
-In this example, principal "Mike" is allowed to perform "update" on resource box "1" while principal "Eric" is allowed to
-perform "read" on resource box "9". Now, consider a malicious OS user adding the statement below to the same policies file.
-
-```
-@id("ill-intentioned-policy")
-forbid(principal, action, resource);
-```
-
-In the next policies file refresh cycle, the [`file::PolicySetProvider`](./src/public/file/policy_set_provider.rs) will refresh policies file content to memory,
-and the local authorizer will deny any action from any principal.
-
-#### How to avoid this problem from happening?
-
-In order to prevent this kind of security issue, you must restrict read access to the data files, and more important,
-restrict write access to these files. Only users or groups that really need to write changes to policies,
-or entities should be allowed to do so (for example, another agent that fetches policies from an internal application).
-
-For one example on how to avoid this problem, say you have the following folder structure for a local-agent built with
-`avp-local-agent` crate.
+Suppose we have the following directory structure:
 
 ```
 authz-agent/
   |- authz_daemon (executable)
 
-authz-local-data/
-  |- policies.cedar
-  |- entities.json
-  |- schema.json
+ocsf-log-dir/
+  |- authorization.log.2023-11-15-21-02
+  ...
 ```
 
 Now suppose you have an OS user to execute the "authz_daemon" called "authz-daemon" from user group "authz-ops".
-And you have a user called "authz-ops-admin" from the same user group "authz-ops" that will be able to update data files.
+We should also create a group called authz-logs-reader.
 
-Then, make "authz-ops-admin" the owner of **authz-local-data** folder with:
-
-```bash
-$ chown -R authz-ops-admin:authz-ops authz-local-data
-```
-
-And make "authz-daemon" user the owner of **authz-agent** folder with:
+And make "authz-daemon" user the owner of **authz-agent** and **ocsf-log-dir** folder with:
 
 ```bash
-$ chown -R authz-daemon:authz-ops authz-agent
+$ chown -R authz-daemon authz-agent ocsf-log-dir
 ```
 
-Finally, make **authz-local-data** readable by everyone and writable by the owner only:
+We will also make the **ocsf-log-dir** part of the **authz-log-reader** group:
+```bash
+$ usermod -a -G authz-log-reader authz-daemon
+$ chgrp -R authz-log-reader ocsf-log-dir
+```
+
+We will now make **ocsf-log-dir** writable by the owner but readable by anyone in the **authz-log-reader** group:
 
 ```bash
-$ chmod u=rwx,go=r authz-local-data
+$ chmod u=wrx,g=r,o= ocsf-log-dir
 ```
-
-### OCSF Log directory permissions
-
-TODO
 
 ### Secure Agent Configuration
 
-TODO
+Users of the agent should ensure that they are following the instructions from the [Managing AWS Credentials](#managing-aws-credentials) section of this README, as well as using an IAM role with the least privilege possible.
+We provide an example of a least privilege IAM role in the [Recommended IAM Policy](#recommended-iam-policy) of this document.
+
+As explained in the [`cedar-local-agent`](https://github.com/cedar-policy/cedar-local-agent/tree/main#updating-filepolicysetprovider-or-fileentityprovider-data) documentation, when setting up asynchronous updates of the policy set from AVP, we advise the user to make use of the existing signalers available in the cedar-local-agent crate: 
+
+1. [``clock_ticker_task``](https://github.com/cedar-policy/cedar-local-agent/blob/main/src/public/events/core.rs)
+2. [``file_inspector_task``](https://github.com/cedar-policy/cedar-local-agent/blob/main/src/public/events/core.rs)
+
+and in particular, as is explained in the [`cedar-local-agent`](https://github.com/cedar-policy/cedar-local-agent/tree/main#updating-filepolicysetprovider-or-fileentityprovider-data), users should have a ``RefreshRate`` of at least 15 seconds, since any more risks overwhelming AVP and could lead to throttling behaviour. For example:
+
+```rust
+let (clock_ticker_signal_thread, receiver) = clock_ticker_task(RefreshRate::FifteenSeconds);
+```
 
 ## License
 
