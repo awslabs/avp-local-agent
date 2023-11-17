@@ -202,7 +202,7 @@ Note: The integration tests create Amazon Verified Permissions resources within 
 The following is a high level description of some security concerns to keep in mind when using the `avp-local-agent` 
 to enable local evaluation of Cedar policies stored in Amazon Verified Permissions Policy Stores.
 
-### Trusted Computing Environment
+### Trusted Computing Environment 
 
 The `avp-local-agent` is a mere library that customers can wrap in say an HTTP server and deploy onto a fleet of hosts.
 It is, therefore, left to users to take any and all necessary precautions to ensure those security concerns beyond what 
