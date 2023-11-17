@@ -39,9 +39,6 @@ pub enum ProviderError {
     /// Cannot retrieve the Templates from Amazon Verified Permissions
     #[error("Cannot gather the Policies from Amazon Verified Permissions: {0}")]
     TemplateSourceException(#[source] TemplateSourceException),
-    /// When the file system entity provider cannot update it's data
-    #[error("The update provider failed to update the entities: {0}")]
-    Update(#[source] UpdateProviderDataError),
 }
 
 impl From<TemplateSourceException> for ProviderError {

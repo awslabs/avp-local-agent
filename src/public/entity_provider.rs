@@ -37,9 +37,6 @@ pub enum ProviderError {
     /// Entities file is malformed in some way
     #[error("The Entities failed to be parsed: {0}")]
     EntitiesError(#[source] EntitiesError),
-    /// When the file system entity provider cannot update it's data
-    #[error("The update provider failed to update the entities: {0}")]
-    UpdateError(#[source] UpdateProviderDataError),
 }
 
 impl From<SchemaError> for ProviderError {
