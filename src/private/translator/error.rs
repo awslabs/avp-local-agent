@@ -1,5 +1,3 @@
-use cedar_policy::SchemaError;
-use cedar_policy_core::parser::err::ParseErrors;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -16,20 +14,12 @@ pub enum TranslatorException {
     EntityIdNotFound(),
     #[error("Input is invalid.")]
     InvalidInput(),
-    #[error("Error occurred when parsing the object: {0}.")]
-    ParseObject(#[source] ParseErrors),
-    #[error("Error occurred when parsing the schema: {0}")]
-    ParseSchema(#[source] SchemaError),
-}
-
-impl From<ParseErrors> for TranslatorException {
-    fn from(err: ParseErrors) -> Self {
-        Self::ParseObject(err)
-    }
-}
-
-impl From<SchemaError> for TranslatorException {
-    fn from(err: SchemaError) -> Self {
-        Self::ParseSchema(err)
-    }
+    #[error("Error occurred when parsing the policy, policy id: {0}.")]
+    ParsePolicy(String),
+    #[error("Error occurred when parsing the entity in the policy, policy id: {0}.")]
+    ParseEntity(String),
+    #[error("Error occurred when parsing the template, template id: {0}.")]
+    ParseTemplate(String),
+    #[error("Error occurred when parsing the schema")]
+    ParseSchema(),
 }
