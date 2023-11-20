@@ -4,8 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
-use cedar_policy::{PolicyId, PolicySet, PolicySetError, Request};
-use cedar_policy_core::parser::err::ParseErrors;
+use cedar_policy::{PolicyId, PolicySet, Request};
 use derive_builder::Builder;
 use thiserror::Error;
 use tokio::runtime::Handle;
@@ -41,6 +40,20 @@ pub enum ProviderError {
     TemplateSourceException(#[source] TemplateSourceException),
 }
 
+/// The enum for errors that occur when building the `PolicySet`
+#[derive(Error, Debug)]
+pub enum PolicySetError {
+    ///Cannot add the static policy to the policy set
+    #[error("Fail to add the static policy to the policy set, policy id: {0}")]
+    StaticPolicy(String),
+    ///Cannot link the template linked policy to the policy set
+    #[error("Fail to link the template linked policy to the policy set, policy id: {0}, template id: {1}")]
+    TemplateLinkedPolicy(String, String),
+    ///Cannot add the template to the policy set
+    #[error("Fail to add the template to the policy set, template id: {0}")]
+    Template(String),
+}
+
 impl From<TemplateSourceException> for ProviderError {
     fn from(value: TemplateSourceException) -> Self {
         Self::TemplateSourceException(value)
@@ -55,12 +68,6 @@ impl From<PolicySourceException> for ProviderError {
 
 impl From<PolicySetError> for ProviderError {
     fn from(value: PolicySetError) -> Self {
-        Self::PolicySet(Box::new(value))
-    }
-}
-
-impl From<ParseErrors> for ProviderError {
-    fn from(value: ParseErrors) -> Self {
         Self::PolicySet(Box::new(value))
     }
 }
@@ -158,18 +165,42 @@ impl PolicySetProvider {
         })?;
 
         for (_, template) in templates {
-            policy_set.add_template(template.0)?;
+            policy_set
+                .add_template(template.0.clone())
+                .map_err(|_e| PolicySetError::Template(template.0.id().to_string()))?;
         }
 
         for (_, policy) in policies {
             match policy {
                 Policy::Static(cedar_policy) => {
-                    policy_set.add(cedar_policy)?;
+                    let cedar_policy_id = &cedar_policy.id().clone();
+                    policy_set
+                        .add(cedar_policy)
+                        .map_err(|_e| PolicySetError::StaticPolicy(cedar_policy_id.to_string()))?;
                 }
                 Policy::TemplateLinked(policy_id, template_id, entity_map) => {
-                    let cedar_policy_id = PolicyId::from_str(&policy_id.to_string())?;
-                    let cedar_template_id = PolicyId::from_str(&template_id.to_string())?;
-                    policy_set.link(cedar_template_id, cedar_policy_id, entity_map)?;
+                    let cedar_policy_id =
+                        PolicyId::from_str(&policy_id.to_string()).map_err(|_e| {
+                            PolicySetError::TemplateLinkedPolicy(
+                                policy_id.to_string(),
+                                template_id.to_string(),
+                            )
+                        })?;
+                    let cedar_template_id =
+                        PolicyId::from_str(&template_id.to_string()).map_err(|_e| {
+                            PolicySetError::TemplateLinkedPolicy(
+                                policy_id.to_string(),
+                                template_id.to_string(),
+                            )
+                        })?;
+                    policy_set
+                        .link(cedar_template_id, cedar_policy_id, entity_map)
+                        .map_err(|_e| {
+                            PolicySetError::TemplateLinkedPolicy(
+                                policy_id.to_string(),
+                                template_id.to_string(),
+                            )
+                        })?;
                 }
             }
         }
@@ -203,7 +234,7 @@ impl UpdateProviderData for PolicySetProvider {
                 .await
                 .fetch(self.policy_store_id.clone())
                 .await
-                .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                .map_err(|e| UpdateProviderDataError::General(Box::new(ProviderError::from(e))))?;
         };
 
         let policies;
@@ -214,31 +245,59 @@ impl UpdateProviderData for PolicySetProvider {
                 .await
                 .fetch(self.policy_store_id.clone())
                 .await
-                .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                .map_err(|e| UpdateProviderDataError::General(Box::new(ProviderError::from(e))))?;
         }
 
         let mut policy_set_data = PolicySet::new();
         for (_, template) in templates {
             policy_set_data
-                .add_template(template.0)
-                .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                .add_template(template.0.clone())
+                .map_err(|_e| {
+                    UpdateProviderDataError::General(Box::new(ProviderError::from(
+                        PolicySetError::Template(template.0.id().to_string()),
+                    )))
+                })?;
         }
 
         for (_, policy) in policies {
             match policy {
                 Policy::Static(cedar_policy) => {
-                    policy_set_data
-                        .add(cedar_policy)
-                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                    let cedar_policy_id = &cedar_policy.id().clone();
+                    policy_set_data.add(cedar_policy).map_err(|_e| {
+                        UpdateProviderDataError::General(Box::new(PolicySetError::StaticPolicy(
+                            cedar_policy_id.to_string(),
+                        )))
+                    })?;
                 }
                 Policy::TemplateLinked(policy_id, template_id, entity_map) => {
-                    let cedar_policy_id = PolicyId::from_str(&policy_id.to_string())
-                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
-                    let cedar_template_id = PolicyId::from_str(&template_id.to_string())
-                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                    let cedar_policy_id =
+                        PolicyId::from_str(&policy_id.to_string()).map_err(|_e| {
+                            UpdateProviderDataError::General(Box::new(
+                                PolicySetError::TemplateLinkedPolicy(
+                                    policy_id.to_string(),
+                                    template_id.to_string(),
+                                ),
+                            ))
+                        })?;
+                    let cedar_template_id =
+                        PolicyId::from_str(&template_id.to_string()).map_err(|_e| {
+                            UpdateProviderDataError::General(Box::new(
+                                PolicySetError::TemplateLinkedPolicy(
+                                    policy_id.to_string(),
+                                    template_id.to_string(),
+                                ),
+                            ))
+                        })?;
                     policy_set_data
                         .link(cedar_template_id, cedar_policy_id, entity_map)
-                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
+                        .map_err(|_e| {
+                            UpdateProviderDataError::General(Box::new(
+                                PolicySetError::TemplateLinkedPolicy(
+                                    policy_id.to_string(),
+                                    template_id.to_string(),
+                                ),
+                            ))
+                        })?;
                 }
             }
         }

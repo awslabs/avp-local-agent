@@ -28,26 +28,26 @@ pub enum ProviderError {
     /// Configuration error
     #[error("The configuration didn't build: {0}")]
     Configuration(String),
-    /// Can't retrieve the schema from Amazon Verified Permissions
+    /// Cannot retrieve the schema from Amazon Verified Permissions
     #[error("Failed to get the schema from Amazon Verified Permissions: {0}")]
     RetrieveException(#[source] SchemaException),
     /// Schema file is malformed in some way
-    #[error("The Schema file failed to be parsed: {0}")]
-    SchemaParseError(#[source] SchemaError),
-    /// Entities file is malformed in some way
-    #[error("The Entities failed to be parsed: {0}")]
-    EntitiesError(#[source] EntitiesError),
+    #[error("The Schema file failed to be parsed")]
+    SchemaParse(),
+    /// Cannot extract entities from the schema
+    #[error("Failed to extract entities from the schema")]
+    Entities(),
 }
 
 impl From<SchemaError> for ProviderError {
-    fn from(value: SchemaError) -> Self {
-        Self::SchemaParseError(value)
+    fn from(_value: SchemaError) -> Self {
+        Self::SchemaParse()
     }
 }
 
 impl From<EntitiesError> for ProviderError {
-    fn from(value: EntitiesError) -> Self {
-        Self::EntitiesError(value)
+    fn from(_value: EntitiesError) -> Self {
+        Self::Entities()
     }
 }
 
@@ -185,11 +185,12 @@ impl UpdateProviderData for EntityProvider {
         let entities = match fetch_schema_result {
             Ok(get_schema_output) => {
                 if let Some(schema_str) = get_schema_output.schema {
-                    let schema = Schema::from_str(schema_str.as_str())
-                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?;
-                    schema
-                        .action_entities()
-                        .map_err(|e| UpdateProviderDataError::General(Box::new(e)))?
+                    let schema = Schema::from_str(schema_str.as_str()).map_err(|e| {
+                        UpdateProviderDataError::General(Box::new(ProviderError::from(e)))
+                    })?;
+                    schema.action_entities().map_err(|e| {
+                        UpdateProviderDataError::General(Box::new(ProviderError::from(e)))
+                    })?
                 } else {
                     debug!(
                         "No Schema defined at Policy Store: policy_store_id={:?}",
@@ -203,7 +204,6 @@ impl UpdateProviderData for EntityProvider {
                 | SchemaException::Validation(_)
                 | SchemaException::Retryable(_)
                 | SchemaException::Unhandled(_) => {
-                    error!("Failed to get the schema on initialization: {error:?}");
                     return Err(UpdateProviderDataError::General(Box::new(error)));
                 }
                 SchemaException::ResourceNotFound(_) => Entities::empty(),
