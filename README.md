@@ -90,6 +90,11 @@ let client = verified_permissions_with_credentials(Region::new("us-east-1"), cre
 
 Any credentials provider can be passed in, or you can make your own credentials provider. 
 
+For more information about specifying credentials see the following AWS Documentation:
+
+[Rust SDK - Specifying Your Credentials and Default Region](https://docs.aws.amazon.com/sdk-for-rust/latest/dg/credentials.html)
+
+
 #### Recommended IAM Policy
 
 For security purposes, we recommend that you create a user with the least privileged IAM policy for the local agent to connect with. 
