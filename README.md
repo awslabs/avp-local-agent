@@ -213,7 +213,7 @@ The `avp-local-agent` is a mere library that customers can wrap in say an HTTP s
 It is, therefore, left to users to take any and all necessary precautions to ensure those security concerns beyond what 
 the `avp-local-agent` is capable of enforcing are met. This includes:
 
-1. Ensuring that AWS Credentials are not stored in any source code that wraps the agent.
+1. Ensuring that AWS Credentials are not stored in any source code that wraps the agent. See [Managing AWS Credentials](#managing-aws-credentials)
 2. Filesystem permissions for on-disk locations of OCSF logs follow least-privilege permissions, see [OCSF Log directory permissions](#ocsf-log-directory-permissions).
 3. The `avp-local-agent` is configured securely, see [Secure Agent Configuration](#secure-agent-configuration).
 
