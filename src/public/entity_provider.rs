@@ -30,25 +30,13 @@ pub enum ProviderError {
     Configuration(String),
     /// Cannot retrieve the schema from Amazon Verified Permissions
     #[error("Failed to get the schema from Amazon Verified Permissions: {0}")]
-    RetrieveException(#[source] SchemaException),
+    RetrieveException(#[from] SchemaException),
     /// Schema file is malformed in some way
     #[error("The Schema file failed to be parsed")]
-    SchemaParse(),
+    SchemaParse(#[from] SchemaError),
     /// Cannot extract entities from the schema
     #[error("Failed to extract entities from the schema")]
-    Entities(),
-}
-
-impl From<SchemaError> for ProviderError {
-    fn from(_value: SchemaError) -> Self {
-        Self::SchemaParse()
-    }
-}
-
-impl From<EntitiesError> for ProviderError {
-    fn from(_value: EntitiesError) -> Self {
-        Self::Entities()
-    }
+    ExtractEntities(#[from] EntitiesError),
 }
 
 impl From<ConfigBuilderError> for ProviderError {
