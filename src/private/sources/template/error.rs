@@ -92,19 +92,31 @@ mod test {
         AccessDeniedException, InternalServerException, ResourceNotFoundException,
         ThrottlingException, ValidationException,
     };
-    use aws_smithy_types::error::Unhandled;
+    use aws_sdk_verifiedpermissions::types::ResourceType;
 
     use crate::private::sources::template::error::TemplateException;
+
+    const MESSAGE: &str = "dummy-message";
 
     #[test]
     fn from_list_policy_templates_error_resource_not_found_to_template_error() {
         assert_eq!(
             TemplateException::from(ListPolicyTemplatesError::ResourceNotFoundException(
-                ResourceNotFoundException::builder().build(),
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::PolicyTemplate)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
             TemplateException::ResourceNotFound(Box::new(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::PolicyTemplate)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string()
         );
@@ -114,11 +126,19 @@ mod test {
     fn from_list_policy_templates_error_access_denied_to_template_error() {
         assert_eq!(
             TemplateException::from(ListPolicyTemplatesError::AccessDeniedException(
-                AccessDeniedException::builder().build(),
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
-            TemplateException::AccessDenied(Box::new(AccessDeniedException::builder().build()))
-                .to_string()
+            TemplateException::AccessDenied(Box::new(
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -126,11 +146,19 @@ mod test {
     fn from_list_policy_templates_error_internal_server_to_template_error() {
         assert_eq!(
             TemplateException::from(ListPolicyTemplatesError::InternalServerException(
-                InternalServerException::builder().build(),
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
-            TemplateException::Retryable(Box::new(InternalServerException::builder().build()))
-                .to_string()
+            TemplateException::Retryable(Box::new(
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -138,11 +166,19 @@ mod test {
     fn from_list_policy_templates_error_throttling_to_template_error() {
         assert_eq!(
             TemplateException::from(ListPolicyTemplatesError::ThrottlingException(
-                ThrottlingException::builder().build(),
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
-            TemplateException::Retryable(Box::new(ThrottlingException::builder().build()))
-                .to_string()
+            TemplateException::Retryable(Box::new(
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -150,28 +186,38 @@ mod test {
     fn from_list_policy_templates_error_validation_to_template_error() {
         assert_eq!(
             TemplateException::from(ListPolicyTemplatesError::ValidationException(
-                ValidationException::builder().build(),
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
-            TemplateException::Validation(Box::new(ValidationException::builder().build()))
-                .to_string()
+            TemplateException::Validation(Box::new(
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
     #[test]
     fn from_list_policy_templates_error_unhandled_to_template_error() {
         assert_eq!(
-            TemplateException::from(ListPolicyTemplatesError::Unhandled(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            TemplateException::from(ListPolicyTemplatesError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
+                    .unwrap()
             ))
             .to_string(),
-            TemplateException::Unhandled(Box::new(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            TemplateException::Unhandled(Box::new(ListPolicyTemplatesError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
-            ))
+                    .unwrap()
+            )))
             .to_string()
         );
     }
@@ -180,11 +226,21 @@ mod test {
     fn from_get_policy_template_error_resource_not_found_to_template_error() {
         assert_eq!(
             TemplateException::from(GetPolicyTemplateError::ResourceNotFoundException(
-                ResourceNotFoundException::builder().build(),
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::PolicyTemplate)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
             TemplateException::ResourceNotFound(Box::new(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::PolicyTemplate)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string()
         );
@@ -194,11 +250,19 @@ mod test {
     fn from_get_policy_template_error_access_denied_to_template_error() {
         assert_eq!(
             TemplateException::from(GetPolicyTemplateError::AccessDeniedException(
-                AccessDeniedException::builder().build(),
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
-            TemplateException::AccessDenied(Box::new(AccessDeniedException::builder().build()))
-                .to_string()
+            TemplateException::AccessDenied(Box::new(
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -206,11 +270,19 @@ mod test {
     fn from_get_policy_template_error_internal_server_to_template_error() {
         assert_eq!(
             TemplateException::from(GetPolicyTemplateError::InternalServerException(
-                InternalServerException::builder().build(),
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
-            TemplateException::Retryable(Box::new(InternalServerException::builder().build()))
-                .to_string()
+            TemplateException::Retryable(Box::new(
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -218,11 +290,19 @@ mod test {
     fn from_get_policy_template_error_throttling_to_template_error() {
         assert_eq!(
             TemplateException::from(GetPolicyTemplateError::ThrottlingException(
-                ThrottlingException::builder().build(),
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
-            TemplateException::Retryable(Box::new(ThrottlingException::builder().build()))
-                .to_string()
+            TemplateException::Retryable(Box::new(
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -230,28 +310,38 @@ mod test {
     fn from_get_policy_template_error_validation_to_template_error() {
         assert_eq!(
             TemplateException::from(GetPolicyTemplateError::ValidationException(
-                ValidationException::builder().build(),
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
-            TemplateException::Validation(Box::new(ValidationException::builder().build()))
-                .to_string()
+            TemplateException::Validation(Box::new(
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
     #[test]
     fn from_get_policy_template_error_unhandled_to_template_error() {
         assert_eq!(
-            TemplateException::from(GetPolicyTemplateError::Unhandled(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            TemplateException::from(GetPolicyTemplateError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
+                    .unwrap()
             ))
             .to_string(),
-            TemplateException::Unhandled(Box::new(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            TemplateException::Unhandled(Box::new(GetPolicyTemplateError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
-            ))
+                    .unwrap()
+            )))
             .to_string()
         );
     }

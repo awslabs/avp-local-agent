@@ -23,7 +23,7 @@ pub trait SchemaSource {
     async fn fetch(
         &mut self,
         policy_store_id: PolicyStoreId,
-    ) -> Result<Option<cedar_policy::Schema>, Self::Error>;
+    ) -> Result<cedar_policy::Schema, Self::Error>;
 }
 
 /// The `VerifiedPermissionsSchemaSource` is responsible for fetching remote verified
@@ -51,24 +51,18 @@ impl SchemaSource for VerifiedPermissionsSchemaSource {
     async fn fetch(
         &mut self,
         policy_store_id: PolicyStoreId,
-    ) -> Result<Option<cedar_policy::Schema>, Self::Error> {
-        let avp_schema = &self.reader.read(policy_store_id.clone()).await?.schema;
+    ) -> Result<cedar_policy::Schema, Self::Error> {
+        let avp_schema = self.reader.read(policy_store_id.clone()).await?.schema;
 
-        if let Some(schema_str) = avp_schema {
-            let Schema(cedar_schema) = Schema::try_from(schema_str.as_str())?;
-            debug!("Successfully fetched Policy Store Schema: policy_store_id={policy_store_id:?}");
-            Ok(Some(cedar_schema))
-        } else {
-            debug!("No schema defined for Policy Store");
-            Ok(None)
-        }
+        let Schema(cedar_schema) = Schema::try_from(avp_schema.as_str())?;
+        debug!("Successfully fetched Policy Store Schema: policy_store_id={policy_store_id:?}");
+        Ok(cedar_schema)
     }
 }
 
 #[cfg(test)]
 mod test {
     use chrono::Utc;
-    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     use crate::private::sources::schema::core::{SchemaSource, VerifiedPermissionsSchemaSource};
@@ -139,7 +133,7 @@ mod test {
         last_updated_date: String,
         #[serde(rename = "policyStoreId")]
         policy_store_id: String,
-        schema: Option<String>,
+        schema: String,
     }
 
     #[tokio::test]
@@ -152,42 +146,17 @@ mod test {
             created_date: Utc::now().to_rfc3339(),
             last_updated_date: Utc::now().to_rfc3339(),
             policy_store_id: POLICY_STORE_ID.to_string(),
-            schema: Some(VALID_SCHEMA.to_string()),
+            schema: VALID_SCHEMA.to_string(),
         };
 
-        let client = build_client(vec![build_event(&request, &response, StatusCode::OK)]);
+        let client = build_client(vec![build_event(&request, &response, 200)]);
 
         let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
         let result = schema_source
             .fetch(PolicyStoreId(POLICY_STORE_ID.to_string()))
-            .await
-            .unwrap();
+            .await;
 
-        assert!(result.is_some());
-    }
-
-    #[tokio::test]
-    async fn test_schema_source_fetch_returns_expected_results_when_none() {
-        let request = GetSchemaRequest {
-            policy_store_id: POLICY_STORE_ID.to_string(),
-        };
-
-        let response = GetSchemaResponse {
-            created_date: Utc::now().to_rfc3339(),
-            last_updated_date: Utc::now().to_rfc3339(),
-            policy_store_id: POLICY_STORE_ID.to_string(),
-            schema: None,
-        };
-
-        let client = build_client(vec![build_event(&request, &response, StatusCode::OK)]);
-
-        let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
-        let result = schema_source
-            .fetch(PolicyStoreId(POLICY_STORE_ID.to_string()))
-            .await
-            .unwrap();
-
-        assert!(result.is_none());
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
@@ -195,10 +164,7 @@ mod test {
         let request = GetSchemaRequest {
             policy_store_id: POLICY_STORE_ID.to_string(),
         };
-        let failed_event = vec![build_empty_event(
-            &request,
-            StatusCode::INTERNAL_SERVER_ERROR,
-        )];
+        let failed_event = vec![build_empty_event(&request, 500)];
         let client = build_client(failed_event);
         let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
 

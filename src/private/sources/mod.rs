@@ -82,21 +82,22 @@ pub trait Cache {
 mod test {
     use aws_credential_types::Credentials;
     use aws_sdk_verifiedpermissions::{Client, Config};
-    use aws_smithy_client::test_connection::TestConnection;
-    use aws_smithy_http::body::SdkBody;
+    use aws_smithy_runtime::client::http::test_util::{ReplayEvent, StaticReplayClient};
+    use aws_smithy_runtime_api::client::behavior_version::BehaviorVersion;
+    use aws_smithy_runtime_api::http::{Request, Response, StatusCode};
+    use aws_smithy_types::body::SdkBody;
     use aws_types::region::Region;
-    use http::{Request, Response, StatusCode};
     use serde::Serialize;
 
-    /// A pair of a request and responses for the mock AVP client.
-    pub type RequestResponsePair = (Request<SdkBody>, Response<SdkBody>);
-
     /// Builds a mock AVP client with the provided events
-    pub fn build_client(events: Vec<RequestResponsePair>) -> Client {
+    pub fn build_client(events: Vec<ReplayEvent>) -> Client {
+        let http_client = StaticReplayClient::new(events);
+
         let conf = Config::builder()
             .credentials_provider(Credentials::new("a", "b", Some("c".to_string()), None, "d"))
             .region(Region::new("us-east-1"))
-            .http_connector(TestConnection::new(events))
+            .http_client(http_client)
+            .behavior_version(BehaviorVersion::v2023_11_09())
             .build();
 
         Client::from_conf(conf)
@@ -108,23 +109,17 @@ mod test {
     /// # Panics
     ///
     /// Will panic if failing to convert `request` to `SdkBody`
-    pub fn build_event<S, T>(
-        request: &S,
-        response: &T,
-        status_code: StatusCode,
-    ) -> RequestResponsePair
+    pub fn build_event<S, T>(request: &S, response: &T, status_code: u16) -> ReplayEvent
     where
         S: ?Sized + Serialize,
         T: ?Sized + Serialize,
     {
         let request = Request::new(SdkBody::from(serde_json::to_string(&request).unwrap()));
+        let body = SdkBody::from(serde_json::to_string(&response).unwrap());
+        let status_code = StatusCode::try_from(status_code).unwrap();
+        let response = Response::new(status_code, body);
 
-        let response = Response::builder()
-            .status(status_code)
-            .body(SdkBody::from(serde_json::to_string(&response).unwrap()))
-            .unwrap();
-
-        (request, response)
+        ReplayEvent::new(request, response)
     }
 
     /// Builds an event from the provided serializable request and status code using an
@@ -133,17 +128,14 @@ mod test {
     /// # Panics
     ///
     /// Will panic if failing to convert `request` to `SdkBody`
-    pub fn build_empty_event<T>(request: &T, status_code: StatusCode) -> RequestResponsePair
+    pub fn build_empty_event<T>(request: &T, status_code: u16) -> ReplayEvent
     where
         T: ?Sized + Serialize,
     {
         let request = Request::new(SdkBody::from(serde_json::to_string(&request).unwrap()));
+        let status_code = StatusCode::try_from(status_code).unwrap();
+        let response = Response::new(status_code, SdkBody::empty());
 
-        let response = Response::builder()
-            .status(status_code)
-            .body(SdkBody::empty())
-            .unwrap();
-
-        (request, response)
+        ReplayEvent::new(request, response)
     }
 }

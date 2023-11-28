@@ -7,7 +7,7 @@ use crate::private::types::policy_store_id::PolicyStoreId;
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::operation::get_schema::{GetSchemaError, GetSchemaOutput};
 use aws_sdk_verifiedpermissions::Client;
-use aws_smithy_http::result::SdkError;
+use aws_smithy_runtime_api::client::result::SdkError;
 use tracing::instrument;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving the schema.
@@ -67,7 +67,6 @@ mod test {
     use crate::private::sources::Read;
     use crate::private::types::policy_store_id::PolicyStoreId;
     use chrono::Utc;
-    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -103,12 +102,12 @@ mod test {
             schema: schema.to_string(),
         };
 
-        let events = vec![build_event(&request, &response, StatusCode::OK)];
+        let events = vec![build_event(&request, &response, 200)];
         let client = build_client(events);
         let schema_reader = GetSchema::new(client, BackoffStrategy::default());
         let result = schema_reader.read(policy_store_id).await.unwrap();
 
-        assert_eq!(response.schema, result.schema.unwrap());
+        assert_eq!(response.schema, result.schema);
     }
 
     #[tokio::test]
@@ -119,7 +118,7 @@ mod test {
             policy_store_id: policy_store_id.to_string(),
         };
 
-        let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
+        let events = vec![build_empty_event(&request, 400)];
 
         let client = build_client(events);
         let schema_reader = GetSchema::new(client, BackoffStrategy::default());

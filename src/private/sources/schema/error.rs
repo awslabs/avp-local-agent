@@ -74,17 +74,28 @@ mod tests {
         AccessDeniedException, InternalServerException, ResourceNotFoundException,
         ThrottlingException, ValidationException,
     };
-    use aws_smithy_types::error::Unhandled;
+    use aws_sdk_verifiedpermissions::types::ResourceType;
 
+    const MESSAGE: &str = "dummy-message";
     #[test]
     fn from_get_schema_error_resource_not_found_to_schema_exception() {
         assert_eq!(
             SchemaException::from(GetSchemaError::ResourceNotFoundException(
-                ResourceNotFoundException::builder().build(),
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::Schema)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
             SchemaException::ResourceNotFound(Box::new(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::Schema)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string()
         );
@@ -94,11 +105,19 @@ mod tests {
     fn from_get_schema_error_access_denied_to_schema_exception() {
         assert_eq!(
             SchemaException::from(GetSchemaError::AccessDeniedException(
-                AccessDeniedException::builder().build()
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            SchemaException::AccessDenied(Box::new(AccessDeniedException::builder().build()))
-                .to_string()
+            SchemaException::AccessDenied(Box::new(
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -106,11 +125,19 @@ mod tests {
     fn from_get_schema_error_internal_server_exception_to_schema_exception() {
         assert_eq!(
             SchemaException::from(GetSchemaError::InternalServerException(
-                InternalServerException::builder().build()
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            SchemaException::Retryable(Box::new(InternalServerException::builder().build()))
-                .to_string()
+            SchemaException::Retryable(Box::new(
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -118,11 +145,19 @@ mod tests {
     fn from_get_schema_error_throttling_exception_to_schema_exception() {
         assert_eq!(
             SchemaException::from(GetSchemaError::ThrottlingException(
-                ThrottlingException::builder().build()
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            SchemaException::Retryable(Box::new(ThrottlingException::builder().build()))
-                .to_string()
+            SchemaException::Retryable(Box::new(
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -130,35 +165,45 @@ mod tests {
     fn from_get_schema_error_validation_exception_to_schema_exception() {
         assert_eq!(
             SchemaException::from(GetSchemaError::ValidationException(
-                ValidationException::builder().build()
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            SchemaException::Validation(Box::new(ValidationException::builder().build()))
-                .to_string()
-        );
-    }
-
-    #[test]
-    fn from_get_schema_error_unhandled_to_schema_exception() {
-        assert_eq!(
-            SchemaException::from(GetSchemaError::Unhandled(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            SchemaException::Validation(Box::new(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
-            ))
-            .to_string(),
-            SchemaException::Unhandled(Box::new(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
-                    .build()
+                    .unwrap()
             ))
             .to_string()
         );
     }
 
     #[test]
+    fn from_get_schema_error_unhandled_to_schema_exception() {
+        assert_eq!(
+            SchemaException::from(GetSchemaError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string(),
+            SchemaException::Unhandled(Box::new(GetSchemaError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            )))
+            .to_string()
+        );
+    }
+
+    #[test]
     fn from_translator_exception_to_schema_source_exception() {
-        let translator_exception = translator::error::TranslatorException::EntityIdNotFound();
+        let translator_exception = translator::error::TranslatorException::InvalidInput();
         assert!(matches!(
             SchemaSourceException::from(translator_exception),
             SchemaSourceException::TranslatorException(..)
@@ -167,11 +212,12 @@ mod tests {
 
     #[test]
     fn from_schema_exception_to_schema_source_exception() {
-        let schema_exception = SchemaException::Unhandled(Box::new(
-            Unhandled::builder()
-                .source(Box::new(ValidationException::builder().build()))
-                .build(),
-        ));
+        let schema_exception = SchemaException::Unhandled(Box::new(GetSchemaError::unhandled(
+            ValidationException::builder()
+                .message(MESSAGE)
+                .build()
+                .unwrap(),
+        )));
         assert!(matches!(
             SchemaSourceException::from(schema_exception),
             SchemaSourceException::SchemaSource(..)

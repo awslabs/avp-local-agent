@@ -8,8 +8,7 @@ use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::operation::list_policy_templates::ListPolicyTemplatesOutput;
 use aws_sdk_verifiedpermissions::types::PolicyTemplateItem;
 use aws_sdk_verifiedpermissions::Client;
-use aws_smithy_http::result::SdkError;
-use futures::StreamExt;
+use aws_smithy_runtime_api::client::result::SdkError;
 use tracing::{debug, instrument};
 
 use crate::private::sources::template::error::TemplateException;
@@ -50,15 +49,11 @@ impl Load for ListPolicyTemplates {
         while let Some(page) = client_results.next().await {
             let page: ListPolicyTemplatesOutput = page.map_err(SdkError::into_service_error)?;
 
-            if let Some(templates) = page.policy_templates {
-                for policy_template_item in templates {
-                    if let Some(template_id) = policy_template_item.policy_template_id.as_ref() {
-                        policy_template_ids_map.insert(
-                            TemplateId(template_id.to_string()),
-                            policy_template_item.clone(),
-                        );
-                    }
-                }
+            for policy_template_item in page.policy_templates {
+                policy_template_ids_map.insert(
+                    TemplateId(policy_template_item.policy_template_id.clone()),
+                    policy_template_item,
+                );
             }
         }
         debug!(
@@ -71,8 +66,6 @@ impl Load for ListPolicyTemplates {
 
 #[cfg(test)]
 mod test {
-    use http::StatusCode;
-
     use crate::private::sources::template::core::test::{
         build_policy_template, ListPolicyTemplatesRequest, ListPolicyTemplatesResponse,
     };
@@ -96,7 +89,7 @@ mod test {
             policy_templates: None,
         };
 
-        let events = vec![build_event(&request, &response, StatusCode::OK)];
+        let events = vec![build_event(&request, &response, 200)];
 
         let client = build_client(events);
         let template_loader = ListPolicyTemplates::new(client);
@@ -125,7 +118,7 @@ mod test {
             )]),
         };
 
-        let events = vec![build_event(&request, &response, StatusCode::OK)];
+        let events = vec![build_event(&request, &response, 200)];
 
         let client = build_client(events);
         let template_loader = ListPolicyTemplates::new(client);
@@ -140,11 +133,7 @@ mod test {
             template_description
         );
         assert_eq!(
-            policy_template_item
-                .policy_store_id
-                .as_ref()
-                .unwrap()
-                .to_string(),
+            policy_template_item.policy_store_id,
             policy_store_id.to_string()
         );
     }
@@ -188,8 +177,8 @@ mod test {
         };
 
         let events = vec![
-            build_event(&request, &response, StatusCode::OK),
-            build_event(&request_two, &response_two, StatusCode::OK),
+            build_event(&request, &response, 200),
+            build_event(&request_two, &response_two, 200),
         ];
 
         let client = build_client(events);
@@ -207,19 +196,11 @@ mod test {
             policy_template_description
         );
         assert_eq!(
-            policy_template_item
-                .policy_template_id
-                .as_ref()
-                .unwrap()
-                .to_string(),
+            policy_template_item.policy_template_id,
             policy_template_id.to_string()
         );
         assert_eq!(
-            policy_template_item
-                .policy_store_id
-                .as_ref()
-                .unwrap()
-                .to_string(),
+            policy_template_item.policy_store_id,
             policy_store_id.to_string()
         );
 
@@ -231,19 +212,11 @@ mod test {
             policy_template_two_description
         );
         assert_eq!(
-            policy_template_item_two
-                .policy_template_id
-                .as_ref()
-                .unwrap()
-                .to_string(),
+            policy_template_item_two.policy_template_id,
             policy_template_id_2.to_string()
         );
         assert_eq!(
-            policy_template_item_two
-                .policy_store_id
-                .as_ref()
-                .unwrap()
-                .to_string(),
+            policy_template_item_two.policy_store_id,
             policy_store_id.to_string()
         );
     }

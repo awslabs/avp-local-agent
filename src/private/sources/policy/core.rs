@@ -100,17 +100,13 @@ impl PolicySource for VerifiedPermissionsPolicySource {
         }
 
         for (policy_id, policy_output) in &mut self.cache {
-            let policy_id_str = policy_output
-                .policy_id
-                .as_ref()
-                .ok_or_else(PolicySourceException::PolicyIdNotFound)?;
             let definition = policy_output
                 .definition
                 .as_ref()
                 .ok_or_else(PolicySourceException::PolicyDefinitionNotFound)?;
 
             let cedar_policy = Policy::try_from(PolicyDefinition {
-                policy_id: policy_id_str.to_string(),
+                policy_id: policy_output.policy_id.clone(),
                 detail: definition.clone(),
             })?;
 
@@ -126,11 +122,11 @@ impl PolicySource for VerifiedPermissionsPolicySource {
 pub mod test {
     use aws_sdk_verifiedpermissions::operation::get_policy::GetPolicyOutput;
     use aws_sdk_verifiedpermissions::types::{
-        EntityIdentifier, PolicyDefinitionDetail, StaticPolicyDefinitionDetail,
+        EntityIdentifier, PolicyDefinitionDetail, PolicyType, StaticPolicyDefinitionDetail,
         TemplateLinkedPolicyDefinitionDetail,
     };
+    use aws_smithy_types::DateTime;
     use chrono::Utc;
-    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     use crate::private::sources::policy::core::{
@@ -358,14 +354,15 @@ pub mod test {
         );
 
         let client = build_client(vec![
-            build_event(&loader_request, &loader_response, StatusCode::OK),
-            build_event(&reader_request, &reader_response, StatusCode::OK),
+            build_event(&loader_request, &loader_response, 200),
+            build_event(&reader_request, &reader_response, 200),
         ]);
 
         let entity_identifier = EntityIdentifier::builder()
             .entity_type(ENTITY_TYPE)
             .entity_id(ENTITY_ID)
-            .build();
+            .build()
+            .unwrap();
 
         let static_definition = PolicyDefinition {
             policy_id: policy_id_1.to_string(),
@@ -373,22 +370,28 @@ pub mod test {
                 StaticPolicyDefinitionDetail::builder()
                     .description(POLICY_DEFINITION_DETAIL_DEFINITION.to_string())
                     .statement(POLICY_DEFINITION_DETAIL_STATEMENT.to_string())
-                    .build(),
+                    .build()
+                    .unwrap(),
             ),
         };
 
         let deleted_output = GetPolicyOutput::builder()
             .policy_store_id(policy_store_id.to_string())
             .policy_id(policy_id_2.to_string())
+            .policy_type(PolicyType::Static)
+            .created_date(DateTime::from_secs(0))
+            .last_updated_date(DateTime::from_secs(0))
             .principal(entity_identifier.clone())
             .resource(entity_identifier)
             .definition(PolicyDefinitionDetail::Static(
                 StaticPolicyDefinitionDetail::builder()
                     .description(POLICY_DEFINITION_DETAIL_DEFINITION.to_string())
                     .statement(POLICY_DEFINITION_DETAIL_STATEMENT.to_string())
-                    .build(),
+                    .build()
+                    .unwrap(),
             ))
-            .build();
+            .build()
+            .unwrap();
 
         let mut policy_source = VerifiedPermissionsPolicySource::from(client);
         policy_source.cache.put(policy_id_2.clone(), deleted_output);
@@ -412,12 +415,14 @@ pub mod test {
         let principal_entity_identifier = EntityIdentifier::builder()
             .entity_type(PRINCIPAL_ENTITY_TYPE)
             .entity_id(PRINCIPAL_ENTITY_ID)
-            .build();
+            .build()
+            .unwrap();
 
         let resource_entity_identifier = EntityIdentifier::builder()
             .entity_type(RESOURCE_ENTITY_TYPE)
             .entity_id(RESOURCE_ENTITY_ID)
-            .build();
+            .build()
+            .unwrap();
 
         let loader_request = ListPoliciesRequest {
             policy_store_id: policy_store_id.to_string(),
@@ -462,8 +467,8 @@ pub mod test {
         );
 
         let client = build_client(vec![
-            build_event(&loader_request, &loader_response, StatusCode::OK),
-            build_event(&reader_request, &reader_response, StatusCode::OK),
+            build_event(&loader_request, &loader_response, 200),
+            build_event(&reader_request, &reader_response, 200),
         ]);
 
         let template_linked_definition = PolicyDefinition {
@@ -473,7 +478,8 @@ pub mod test {
                     .policy_template_id(policy_template_id.to_string())
                     .principal(principal_entity_identifier.clone())
                     .resource(resource_entity_identifier.clone())
-                    .build(),
+                    .build()
+                    .unwrap(),
             ),
         };
 

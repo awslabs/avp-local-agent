@@ -159,11 +159,7 @@ mod test {
     }
 
     async fn setup_policy_store_for_test(client: &Client) -> (String, String, String) {
-        let policy_store_id = create_policy_store(client)
-            .await
-            .unwrap()
-            .policy_store_id
-            .unwrap();
+        let policy_store_id = create_policy_store(client).await.unwrap().policy_store_id;
 
         let editor_template_id = client
             .create_policy_template()
@@ -173,8 +169,7 @@ mod test {
             .send()
             .await
             .unwrap()
-            .policy_template_id
-            .unwrap();
+            .policy_template_id;
 
         let viewer_template_id = client
             .create_policy_template()
@@ -184,8 +179,7 @@ mod test {
             .send()
             .await
             .unwrap()
-            .policy_template_id
-            .unwrap();
+            .policy_template_id;
 
         for (user, box_id) in [("Mike", "1"), ("Eric", "2")] {
             add_policy(
@@ -215,7 +209,8 @@ mod test {
                 StaticPolicyDefinition::builder()
                     .description("Resource Owner Policy")
                     .statement(OWNER_STATIC_POLICY)
-                    .build(),
+                    .build()
+                    .unwrap(),
             ))
             .send()
             .await
@@ -275,15 +270,18 @@ mod test {
                             EntityIdentifier::builder()
                                 .entity_type("User")
                                 .entity_id(user)
-                                .build(),
+                                .build()
+                                .unwrap(),
                         )
                         .resource(
                             EntityIdentifier::builder()
                                 .entity_type("Box")
                                 .entity_id(box_id)
-                                .build(),
+                                .build()
+                                .unwrap(),
                         )
-                        .build(),
+                        .build()
+                        .unwrap(),
                 ))
                 .send()
                 .await
@@ -304,7 +302,8 @@ mod test {
                 .validation_settings(
                     ValidationSettings::builder()
                         .mode(ValidationMode::Off)
-                        .build(),
+                        .build()
+                        .unwrap(),
                 )
                 .send()
                 .await
