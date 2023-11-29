@@ -65,6 +65,6 @@ mod test {
         assert_eq!(
             PolicyId("p-1".to_string()),
             PolicyId::from("p-1".to_string())
-        )
+        );
     }
 }
