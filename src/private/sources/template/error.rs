@@ -66,22 +66,10 @@ impl From<GetPolicyTemplateError> for TemplateException {
 pub enum TemplateSourceException {
     /// There was an error reading the template from the source.
     #[error("Data source error")]
-    TemplateSource(#[source] TemplateException),
+    TemplateSource(#[from] TemplateException),
     /// There was an error translating the template from the source to cedar.
     #[error("Translation exception")]
-    TranslatorException(#[source] TranslatorException),
-}
-
-impl From<TemplateException> for TemplateSourceException {
-    fn from(error: TemplateException) -> Self {
-        Self::TemplateSource(error)
-    }
-}
-
-impl From<TranslatorException> for TemplateSourceException {
-    fn from(error: TranslatorException) -> Self {
-        Self::TranslatorException(error)
-    }
+    TranslatorException(#[from] TranslatorException),
 }
 
 #[cfg(test)]
@@ -94,7 +82,8 @@ mod test {
     };
     use aws_sdk_verifiedpermissions::types::ResourceType;
 
-    use crate::private::sources::template::error::TemplateException;
+    use crate::private::sources::template::error::{TemplateException, TemplateSourceException};
+    use crate::private::translator::error::TranslatorException;
 
     const MESSAGE: &str = "dummy-message";
 
@@ -343,6 +332,33 @@ mod test {
                     .unwrap()
             )))
             .to_string()
+        );
+    }
+
+    #[test]
+    fn from_template_exception_to_template_source_exception() {
+        assert_eq!(
+            TemplateSourceException::from(TemplateException::Unhandled(Box::new(
+                Unhandled::builder()
+                    .source(Box::new(ValidationException::builder().build()))
+                    .build()
+            )))
+            .to_string(),
+            TemplateSourceException::TemplateSource(TemplateException::Unhandled(Box::new(
+                Unhandled::builder()
+                    .source(Box::new(ValidationException::builder().build()))
+                    .build()
+            )))
+            .to_string()
+        );
+    }
+
+    #[test]
+    fn from_translator_exception_to_template_source_exception() {
+        assert_eq!(
+            TemplateSourceException::from(TranslatorException::InvalidInput()).to_string(),
+            TemplateSourceException::TranslatorException(TranslatorException::InvalidInput())
+                .to_string()
         );
     }
 }
