@@ -110,6 +110,7 @@ pub mod test {
     use aws_sdk_verifiedpermissions::operation::get_policy_template::GetPolicyTemplateOutput;
     use aws_smithy_types::DateTime;
     use chrono::Utc;
+    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     // https://docs.aws.amazon.com/verifiedpermissions/latest/apireference/API_GetPolicyTemplate.html
@@ -240,8 +241,16 @@ pub mod test {
         );
 
         let client = build_client(vec![
-            build_event(&template_loader_request, &template_loader_response, 200),
-            build_event(&template_reader_request, &template_reader_response, 200),
+            build_event(
+                &template_loader_request,
+                &template_loader_response,
+                StatusCode::OK,
+            ),
+            build_event(
+                &template_reader_request,
+                &template_reader_response,
+                StatusCode::OK,
+            ),
         ]);
 
         let updated_output = GetPolicyTemplateOutput::builder()

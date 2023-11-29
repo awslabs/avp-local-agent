@@ -73,6 +73,7 @@ mod test {
     use crate::private::sources::test::{build_client, build_event};
     use crate::private::types::policy_store_id::PolicyStoreId;
     use crate::private::types::template_id::TemplateId;
+    use http::StatusCode;
 
     #[tokio::test]
     async fn list_templates_empty_result_200() {
@@ -89,7 +90,7 @@ mod test {
             policy_templates: None,
         };
 
-        let events = vec![build_event(&request, &response, 200)];
+        let events = vec![build_event(&request, &response, StatusCode::OK)];
 
         let client = build_client(events);
         let template_loader = ListPolicyTemplates::new(client);
@@ -118,7 +119,7 @@ mod test {
             )]),
         };
 
-        let events = vec![build_event(&request, &response, 200)];
+        let events = vec![build_event(&request, &response, StatusCode::OK)];
 
         let client = build_client(events);
         let template_loader = ListPolicyTemplates::new(client);
@@ -177,8 +178,8 @@ mod test {
         };
 
         let events = vec![
-            build_event(&request, &response, 200),
-            build_event(&request_two, &response_two, 200),
+            build_event(&request, &response, StatusCode::OK),
+            build_event(&request_two, &response_two, StatusCode::OK),
         ];
 
         let client = build_client(events);

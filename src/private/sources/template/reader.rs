@@ -98,6 +98,7 @@ impl Read for GetPolicyTemplate {
 #[cfg(test)]
 mod test {
     use crate::private::sources::retry::BackoffStrategy;
+    use http::StatusCode;
 
     use crate::private::sources::template::core::test::{
         build_get_policy_template_response, GetPolicyTemplateRequest,
@@ -128,7 +129,7 @@ mod test {
             statement,
         );
 
-        let events = vec![build_event(&request, &response, 200)];
+        let events = vec![build_event(&request, &response, StatusCode::OK)];
 
         let client = build_client(events);
         let template_reader = GetPolicyTemplate::new(client, BackoffStrategy::default());
@@ -151,7 +152,7 @@ mod test {
             policy_template_id: policy_template_id.to_string(),
         };
 
-        let events = vec![build_empty_event(&request, 400)];
+        let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
 
         let client = build_client(events);
         let template_reader = GetPolicyTemplate::new(client, BackoffStrategy::default());

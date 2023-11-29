@@ -90,6 +90,8 @@ impl Read for GetPolicy {
 
 #[cfg(test)]
 mod tests {
+    use http::StatusCode;
+
     use crate::private::sources::policy::core::test::{
         build_entity_identifier, build_get_policy_response, GetPolicyRequest,
         PolicyDefinitionDetailRaw, StaticPolicyDefinitionDetailRaw,
@@ -129,7 +131,7 @@ mod tests {
             }),
         );
 
-        let events = vec![build_event(&request, &response, 200)];
+        let events = vec![build_event(&request, &response, StatusCode::OK)];
 
         let client = build_client(events);
         let policy_reader = GetPolicy::new(client, BackoffStrategy::default());
@@ -167,7 +169,7 @@ mod tests {
             policy_store_id: policy_store_id.to_string(),
         };
 
-        let events = vec![build_empty_event(&request, 400)];
+        let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
 
         let client = build_client(events);
         let policy_reader = GetPolicy::new(client, BackoffStrategy::default());

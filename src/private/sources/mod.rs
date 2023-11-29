@@ -109,14 +109,18 @@ mod test {
     /// # Panics
     ///
     /// Will panic if failing to convert `request` to `SdkBody`
-    pub fn build_event<S, T>(request: &S, response: &T, status_code: u16) -> ReplayEvent
+    pub fn build_event<S, T>(
+        request: &S,
+        response: &T,
+        status_code: http::StatusCode,
+    ) -> ReplayEvent
     where
         S: ?Sized + Serialize,
         T: ?Sized + Serialize,
     {
         let request = Request::new(SdkBody::from(serde_json::to_string(&request).unwrap()));
         let body = SdkBody::from(serde_json::to_string(&response).unwrap());
-        let status_code = StatusCode::try_from(status_code).unwrap();
+        let status_code = StatusCode::try_from(status_code.as_u16()).unwrap();
         let response = Response::new(status_code, body);
 
         ReplayEvent::new(request, response)
@@ -128,12 +132,12 @@ mod test {
     /// # Panics
     ///
     /// Will panic if failing to convert `request` to `SdkBody`
-    pub fn build_empty_event<T>(request: &T, status_code: u16) -> ReplayEvent
+    pub fn build_empty_event<T>(request: &T, status_code: http::StatusCode) -> ReplayEvent
     where
         T: ?Sized + Serialize,
     {
         let request = Request::new(SdkBody::from(serde_json::to_string(&request).unwrap()));
-        let status_code = StatusCode::try_from(status_code).unwrap();
+        let status_code = StatusCode::try_from(status_code.as_u16()).unwrap();
         let response = Response::new(status_code, SdkBody::empty());
 
         ReplayEvent::new(request, response)

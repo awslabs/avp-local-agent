@@ -65,6 +65,7 @@ mod test {
     use crate::private::sources::policy::loader::{ListPolicies, Load};
     use crate::private::sources::test::{build_client, build_empty_event, build_event};
     use crate::private::types::{policy_id::PolicyId, policy_store_id::PolicyStoreId};
+    use http::StatusCode;
 
     #[tokio::test]
     async fn list_policies_empty_200() {
@@ -79,7 +80,7 @@ mod test {
             next_token: None,
         };
 
-        let events = vec![build_event(&request, &response, 200)];
+        let events = vec![build_event(&request, &response, StatusCode::OK)];
         let client = build_client(events);
         let policy_loader = ListPolicies::new(client);
         let result = policy_loader.load(policy_store_id).await.unwrap();
@@ -111,7 +112,7 @@ mod test {
             )]),
             next_token: None,
         };
-        let events = vec![build_event(&request, &response, 200)];
+        let events = vec![build_event(&request, &response, StatusCode::OK)];
         let client = build_client(events);
         let policy_loader = ListPolicies::new(client);
         let results = policy_loader.load(policy_store_id.clone()).await.unwrap();
@@ -162,8 +163,8 @@ mod test {
         };
 
         let events = vec![
-            build_event(&request, &response_one, 200),
-            build_event(&request, &response_two, 200),
+            build_event(&request, &response_one, StatusCode::OK),
+            build_event(&request, &response_two, StatusCode::OK),
         ];
         let client = build_client(events);
         let policy_loader = ListPolicies::new(client);
@@ -191,7 +192,7 @@ mod test {
             max_results: 1,
         };
 
-        let events = vec![build_empty_event(&request, 400)];
+        let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
 
         let client = build_client(events);
         let policy_loader = ListPolicies::new(client);

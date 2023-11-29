@@ -63,6 +63,7 @@ impl SchemaSource for VerifiedPermissionsSchemaSource {
 #[cfg(test)]
 mod test {
     use chrono::Utc;
+    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     use crate::private::sources::schema::core::{SchemaSource, VerifiedPermissionsSchemaSource};
@@ -149,7 +150,7 @@ mod test {
             schema: VALID_SCHEMA.to_string(),
         };
 
-        let client = build_client(vec![build_event(&request, &response, 200)]);
+        let client = build_client(vec![build_event(&request, &response, StatusCode::OK)]);
 
         let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
         let result = schema_source
@@ -164,7 +165,10 @@ mod test {
         let request = GetSchemaRequest {
             policy_store_id: POLICY_STORE_ID.to_string(),
         };
-        let failed_event = vec![build_empty_event(&request, 500)];
+        let failed_event = vec![build_empty_event(
+            &request,
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )];
         let client = build_client(failed_event);
         let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
 

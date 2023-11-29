@@ -127,6 +127,7 @@ pub mod test {
     };
     use aws_smithy_types::DateTime;
     use chrono::Utc;
+    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     use crate::private::sources::policy::core::{
@@ -354,8 +355,8 @@ pub mod test {
         );
 
         let client = build_client(vec![
-            build_event(&loader_request, &loader_response, 200),
-            build_event(&reader_request, &reader_response, 200),
+            build_event(&loader_request, &loader_response, StatusCode::OK),
+            build_event(&reader_request, &reader_response, StatusCode::OK),
         ]);
 
         let entity_identifier = EntityIdentifier::builder()
@@ -467,8 +468,8 @@ pub mod test {
         );
 
         let client = build_client(vec![
-            build_event(&loader_request, &loader_response, 200),
-            build_event(&reader_request, &reader_response, 200),
+            build_event(&loader_request, &loader_response, StatusCode::OK),
+            build_event(&reader_request, &reader_response, StatusCode::OK),
         ]);
 
         let template_linked_definition = PolicyDefinition {

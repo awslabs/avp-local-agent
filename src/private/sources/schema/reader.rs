@@ -67,6 +67,7 @@ mod test {
     use crate::private::sources::Read;
     use crate::private::types::policy_store_id::PolicyStoreId;
     use chrono::Utc;
+    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -102,7 +103,7 @@ mod test {
             schema: schema.to_string(),
         };
 
-        let events = vec![build_event(&request, &response, 200)];
+        let events = vec![build_event(&request, &response, StatusCode::OK)];
         let client = build_client(events);
         let schema_reader = GetSchema::new(client, BackoffStrategy::default());
         let result = schema_reader.read(policy_store_id).await.unwrap();
@@ -118,7 +119,7 @@ mod test {
             policy_store_id: policy_store_id.to_string(),
         };
 
-        let events = vec![build_empty_event(&request, 400)];
+        let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
 
         let client = build_client(events);
         let schema_reader = GetSchema::new(client, BackoffStrategy::default());
