@@ -30,10 +30,10 @@ jobs:
           path: cedar-local-agent
       - name: Copy cedar-local-agent to head workspace
         run: |
-          cp ./cedar-local-agent ./head
+          cp -r ./cedar-local-agent/* ./head
       - name: Copy cedar-local-agent to base workspace
         run: |
-          cp ./cedar-local-agent ./base
+          cp -r ./cedar-local-agent/* ./base
       # Pull requests to non-release branches are checked for SemVer breakage
       # relative to their target branch .
       - if: ${{ !startsWith(github.base_ref, 'release/') }}
