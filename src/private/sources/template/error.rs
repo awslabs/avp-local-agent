@@ -338,16 +338,18 @@ mod test {
     #[test]
     fn from_template_exception_to_template_source_exception() {
         assert_eq!(
-            TemplateSourceException::from(TemplateException::Unhandled(Box::new(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            TemplateSourceException::from(TemplateException::Validation(Box::new(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
+                    .unwrap()
             )))
             .to_string(),
-            TemplateSourceException::TemplateSource(TemplateException::Unhandled(Box::new(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            TemplateSourceException::TemplateSource(TemplateException::Validation(Box::new(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
+                    .unwrap()
             )))
             .to_string()
         );
