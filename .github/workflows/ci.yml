@@ -11,3 +11,6 @@ jobs:
   build_and_test:
     uses: ./.github/workflows/build_and_test.yml
     secrets: inherit
+  cargo_semver_checks:
+    uses: ./.github/workflows/semantic_version_check.yml
+    secrets: inherit
