@@ -1,0 +1,53 @@
+name: Cargo Semantic version check
+on:
+  workflow_call: # when invoked by any workflow
+  workflow_dispatch: # can be invoked manually
+
+jobs:
+  cargo_semver_checks:
+    name: Cargo Semantic version check
+    runs-on: ubuntu-latest
+    # For the non-release PR, the job will not stop on errors.
+    continue-on-error: ${{ !startsWith(github.base_ref, 'release/') }}
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+    steps:
+      - name: Create head workspace
+        run: mkdir head
+      - name: Create base workspace
+        run: mkdir base
+      - name: Check out head-avp (${{ github.head_ref }})
+        uses: actions/checkout@v4
+        with:
+          path: ./head/head-avp
+      - name: Checkout cedar-main
+        uses: actions/checkout@v4
+        with:
+          repository: cedar-policy/cedar-local-agent
+          token: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
+          path: cedar-local-agent
+      - name: Copy cedar-local-agent to head workspace
+        run: |
+          cp ./cedar-local-agent ./head
+      - name: Copy cedar-local-agent to base workspace
+        run: |
+          cp ./cedar-local-agent ./base
+      # Pull requests to non-release branches are checked for SemVer breakage
+      # relative to their target branch .
+      - if: ${{ !startsWith(github.base_ref, 'release/') }}
+        name: Check out avp-main (${{ github.base_ref }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          path: ./base/base-avp
+
+
+      # TODO: Need to add another step for release PR.
+      # For the release PR, itx will need to compare with the latest version published in the crate.io.
+
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo install cargo-semver-checks
+      - run: cargo semver-checks check-release --package avp-local-agent --baseline-root ../../base/base-avp
+        working-directory: head/head-avp

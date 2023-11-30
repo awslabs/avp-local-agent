@@ -1,6 +1,7 @@
 #!/bin/sh
 
 cd "$(dirname "$0")/.." || exit
+START_TIME=$(date +%s)
 
 rustup update stable && rustup default stable && \
 
@@ -53,4 +54,7 @@ grcov 'target/private/profraw/' \
 
 echo "Successfully generated coverage report under target/coverage/" && \
 
-echo "Build Successful"
+# TODO: Need to add the SemVer validation check once the cedar-local-agent is published.
+
+END_TIME=$(date +%s) && \
+echo "Build Successful in $(($END_TIME - $START_TIME)) seconds"
