@@ -90,15 +90,13 @@ impl Read for GetPolicy {
 
 #[cfg(test)]
 mod tests {
-    use http::StatusCode;
-
     use crate::private::sources::policy::core::test::{
         build_entity_identifier, build_get_policy_response, GetPolicyRequest,
         PolicyDefinitionDetailRaw, StaticPolicyDefinitionDetailRaw,
     };
     use crate::private::sources::policy::reader::{GetPolicy, GetPolicyInput};
     use crate::private::sources::retry::BackoffStrategy;
-    use crate::private::sources::test::{build_client, build_empty_event, build_event};
+    use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::sources::Read;
     use crate::private::types::policy_id::PolicyId;
     use crate::private::types::policy_store_id::PolicyStoreId;

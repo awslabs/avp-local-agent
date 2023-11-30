@@ -17,14 +17,9 @@ skip = [
     { name = "darling", version = "=0.14.4" }, # old dependency from derive_builder
     { name = "darling_macro", version = "=0.14.4" }, # old dependency from derive_builder
     { name = "darling_core", version = "=0.14.4" }, # old dependency from derive_builder
-    { name = "hashbrown", version = "=0.12.3" }, # old transitive dependency from aws-sdk-verifiedpermissions
-    { name = "indexmap", version = "=1.9.3" }, # old transitive dependency from aws-sdk-verifiedpermissions
     { name = "regex-syntax", version = "<=0.7.5" }, # old transitive dependency from cedar_policy_core
-    { name = "ring", version = "=0.16.20" }, # old transitive dependency from aws_config
     { name = "socket2", version = "=0.4.10" }, # old transitive dependency from aws-sdk-verifiedpermissions
-    { name = "spin", version = "=0.5.2" }, # old transitive dependency from aws-config
     { name = "syn", version = "=1.0.109" }, # old dependency from derive_builder
-    { name = "untrusted", version = "=0.7.1" }, # old dependency from aws-config
 ]
 skip-tree = []
 

@@ -102,7 +102,7 @@ pub mod test {
     use crate::private::sources::template::core::{
         TemplateSource, VerifiedPermissionsTemplateSource,
     };
-    use crate::private::sources::test::{build_client, build_event};
+    use crate::private::sources::test::{build_client, build_event, StatusCode};
     use crate::private::sources::Cache;
     use crate::private::translator::avp_to_cedar::Template;
     use crate::private::types::policy_store_id::PolicyStoreId;
@@ -110,7 +110,6 @@ pub mod test {
     use aws_sdk_verifiedpermissions::operation::get_policy_template::GetPolicyTemplateOutput;
     use aws_smithy_types::DateTime;
     use chrono::Utc;
-    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     // https://docs.aws.amazon.com/verifiedpermissions/latest/apireference/API_GetPolicyTemplate.html

@@ -63,11 +63,10 @@ impl Read for GetSchema {
 mod test {
     use crate::private::sources::retry::BackoffStrategy;
     use crate::private::sources::schema::reader::GetSchema;
-    use crate::private::sources::test::{build_client, build_empty_event, build_event};
+    use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::sources::Read;
     use crate::private::types::policy_store_id::PolicyStoreId;
     use chrono::Utc;
-    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]

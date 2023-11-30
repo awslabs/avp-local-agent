@@ -63,9 +63,8 @@ mod test {
         build_entity_identifier, build_policy_item, ListPoliciesRequest, ListPoliciesResponse,
     };
     use crate::private::sources::policy::loader::{ListPolicies, Load};
-    use crate::private::sources::test::{build_client, build_empty_event, build_event};
+    use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::types::{policy_id::PolicyId, policy_store_id::PolicyStoreId};
-    use http::StatusCode;
 
     #[tokio::test]
     async fn list_policies_empty_200() {

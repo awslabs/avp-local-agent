@@ -29,7 +29,7 @@ echo ">>>> cargo audit --deny warnings" && \
 cargo audit --deny warnings && \
 
 echo ">>>> cargo deny check" && \
-cargo deny check
+cargo deny check && \
 
 echo ">>>> Removing old test coverage artifacts" && \
 rm -rf target/coverage/ && mkdir -p target/coverage/ && \

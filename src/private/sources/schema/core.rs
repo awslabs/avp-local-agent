@@ -63,11 +63,10 @@ impl SchemaSource for VerifiedPermissionsSchemaSource {
 #[cfg(test)]
 mod test {
     use chrono::Utc;
-    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     use crate::private::sources::schema::core::{SchemaSource, VerifiedPermissionsSchemaSource};
-    use crate::private::sources::test::{build_client, build_empty_event, build_event};
+    use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::types::policy_store_id::PolicyStoreId;
 
     const POLICY_STORE_ID: &str = "ps-123";

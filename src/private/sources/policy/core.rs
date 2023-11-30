@@ -127,13 +127,12 @@ pub mod test {
     };
     use aws_smithy_types::DateTime;
     use chrono::Utc;
-    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     use crate::private::sources::policy::core::{
         PolicyDefinition, PolicySource, VerifiedPermissionsPolicySource,
     };
-    use crate::private::sources::test::{build_client, build_event};
+    use crate::private::sources::test::{build_client, build_event, StatusCode};
     use crate::private::sources::Cache;
     use crate::private::translator::avp_to_cedar::Policy;
     use crate::private::types::policy_id::PolicyId;

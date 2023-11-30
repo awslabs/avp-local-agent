@@ -70,10 +70,9 @@ mod test {
         build_policy_template, ListPolicyTemplatesRequest, ListPolicyTemplatesResponse,
     };
     use crate::private::sources::template::loader::{ListPolicyTemplates, Load};
-    use crate::private::sources::test::{build_client, build_event};
+    use crate::private::sources::test::{build_client, build_event, StatusCode};
     use crate::private::types::policy_store_id::PolicyStoreId;
     use crate::private::types::template_id::TemplateId;
-    use http::StatusCode;
 
     #[tokio::test]
     async fn list_templates_empty_result_200() {

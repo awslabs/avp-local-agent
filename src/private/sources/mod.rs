@@ -84,10 +84,20 @@ mod test {
     use aws_sdk_verifiedpermissions::{Client, Config};
     use aws_smithy_runtime::client::http::test_util::{ReplayEvent, StaticReplayClient};
     use aws_smithy_runtime_api::client::behavior_version::BehaviorVersion;
-    use aws_smithy_runtime_api::http::{Request, Response, StatusCode};
+    use aws_smithy_runtime_api::http::{Request, Response, StatusCode as AwsStatusCode};
     use aws_smithy_types::body::SdkBody;
     use aws_types::region::Region;
     use serde::Serialize;
+
+    #[allow(non_camel_case_types)]
+    pub enum StatusCode {
+        /// 200 OK
+        OK = 200,
+        /// 400 Bad Request
+        BAD_REQUEST = 400,
+        /// 500 Internal Server Error
+        INTERNAL_SERVER_ERROR = 500,
+    }
 
     /// Builds a mock AVP client with the provided events
     pub fn build_client(events: Vec<ReplayEvent>) -> Client {
@@ -109,18 +119,14 @@ mod test {
     /// # Panics
     ///
     /// Will panic if failing to convert `request` to `SdkBody`
-    pub fn build_event<S, T>(
-        request: &S,
-        response: &T,
-        status_code: http::StatusCode,
-    ) -> ReplayEvent
+    pub fn build_event<S, T>(request: &S, response: &T, status_code: StatusCode) -> ReplayEvent
     where
         S: ?Sized + Serialize,
         T: ?Sized + Serialize,
     {
         let request = Request::new(SdkBody::from(serde_json::to_string(&request).unwrap()));
         let body = SdkBody::from(serde_json::to_string(&response).unwrap());
-        let status_code = StatusCode::try_from(status_code.as_u16()).unwrap();
+        let status_code = AwsStatusCode::try_from(status_code as u16).unwrap();
         let response = Response::new(status_code, body);
 
         ReplayEvent::new(request, response)
@@ -132,12 +138,12 @@ mod test {
     /// # Panics
     ///
     /// Will panic if failing to convert `request` to `SdkBody`
-    pub fn build_empty_event<T>(request: &T, status_code: http::StatusCode) -> ReplayEvent
+    pub fn build_empty_event<T>(request: &T, status_code: StatusCode) -> ReplayEvent
     where
         T: ?Sized + Serialize,
     {
         let request = Request::new(SdkBody::from(serde_json::to_string(&request).unwrap()));
-        let status_code = StatusCode::try_from(status_code.as_u16()).unwrap();
+        let status_code = AwsStatusCode::try_from(status_code as u16).unwrap();
         let response = Response::new(status_code, SdkBody::empty());
 
         ReplayEvent::new(request, response)
