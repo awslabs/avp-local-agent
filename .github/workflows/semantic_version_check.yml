@@ -28,14 +28,21 @@ jobs:
           repository: cedar-policy/cedar-local-agent
           token: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
           path: cedar-local-agent
-      - name: Copy cedar-local-agent to head workspace
+      - name: Move cedar-local-agent to head folder
         run: |
-          cp -r ./cedar-local-agent/* ./head
-      - name: Copy cedar-local-agent to base workspace
-        run: |
-          cp -r ./cedar-local-agent/* ./base
+          mv ./cedar-local-agent ./head
       # Pull requests to non-release branches are checked for SemVer breakage
       # relative to their target branch .
+      - if: ${{ !startsWith(github.base_ref, 'release/') }}
+        name: Checkout cedar-main
+        uses: actions/checkout@v4
+        with:
+          repository: cedar-policy/cedar-local-agent
+          token: ${{ secrets.CEDAR_LOCAL_AGENT_PAT }}
+          path: cedar-local-agent
+      - name: Move cedar-local-agent to base folder
+        run: |
+          mv ./cedar-local-agent ./base
       - if: ${{ !startsWith(github.base_ref, 'release/') }}
         name: Check out avp-main (${{ github.base_ref }})
         uses: actions/checkout@v4
