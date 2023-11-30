@@ -101,6 +101,17 @@ mod test {
             .unwrap()
     }
 
+    fn create_policy_item(last_updated_date: DateTime) -> PolicyItem {
+        PolicyItem::builder()
+            .policy_store_id("ps-1")
+            .policy_id("p-1")
+            .policy_type(PolicyType::Static)
+            .created_date(DateTime::from_secs(0))
+            .last_updated_date(last_updated_date)
+            .build()
+            .unwrap()
+    }
+
     #[test]
     fn put_on_a_missing_key_returns_none() {
         let mut policy_cache = GetPolicyOutputCache::new();
@@ -172,14 +183,7 @@ mod test {
 
         let key = PolicyId("p-1".to_string());
         let policy_output = create_get_policy_output("ps-1");
-        let policy_item = PolicyItem::builder()
-            .policy_store_id("ps-1")
-            .policy_id("p-1")
-            .policy_type(PolicyType::Static)
-            .created_date(DateTime::from_secs(0))
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build()
-            .unwrap();
+        let policy_item = create_policy_item(DateTime::from_secs(Utc::now().timestamp()));
 
         policy_cache.put(key.clone(), policy_output);
         loaded_policies.insert(key, policy_item);
@@ -211,16 +215,9 @@ mod test {
 
         let key = PolicyId("p-1".to_string());
         let policy_output = create_get_policy_output("ps-1");
-        let policy_item = PolicyItem::builder()
-            .policy_store_id("ps-1")
-            .policy_id("p-1")
-            .created_date(DateTime::from_secs(0))
-            .policy_type(PolicyType::Static)
-            .last_updated_date(DateTime::from_secs(
-                (Utc::now() + Duration::minutes(1)).timestamp(),
-            ))
-            .build()
-            .unwrap();
+        let policy_item = create_policy_item(DateTime::from_secs(
+            (Utc::now() + Duration::minutes(1)).timestamp(),
+        ));
 
         policy_cache.put(key.clone(), policy_output);
         loaded_policies.insert(key.clone(), policy_item);
@@ -236,14 +233,7 @@ mod test {
         let mut loaded_policies: HashMap<PolicyId, PolicyItem> = HashMap::new();
 
         let key = PolicyId("p-1".to_string());
-        let policy_item = PolicyItem::builder()
-            .policy_store_id("ps-1")
-            .policy_id("p-1")
-            .policy_type(PolicyType::Static)
-            .created_date(DateTime::from_secs(0))
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build()
-            .unwrap();
+        let policy_item = create_policy_item(DateTime::from_secs(Utc::now().timestamp()));
 
         loaded_policies.insert(key.clone(), policy_item);
 

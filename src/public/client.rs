@@ -36,7 +36,7 @@ pub fn verified_permissions_with_credentials(
             .credentials_provider(credentials)
             .retry_config(RetryConfig::standard().with_max_attempts(AVP_CLIENT_MAX_ATTEMPTS))
             .sleep_impl(SharedAsyncSleep::new(TokioSleep::new()))
-            .behavior_version(BehaviorVersion::v2023_11_09())
+            .behavior_version(BehaviorVersion::latest())
             .build(),
     )
 }
@@ -64,7 +64,7 @@ pub async fn verified_permissions_default_credentials(region: Region) -> Client 
             .credentials_provider(creds)
             .retry_config(RetryConfig::standard().with_max_attempts(AVP_CLIENT_MAX_ATTEMPTS))
             .sleep_impl(SharedAsyncSleep::new(TokioSleep::new()))
-            .behavior_version(BehaviorVersion::v2023_11_09())
+            .behavior_version(BehaviorVersion::latest())
             .build(),
     )
 }

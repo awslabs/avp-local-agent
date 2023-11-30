@@ -107,7 +107,7 @@ mod test {
             .credentials_provider(Credentials::new("a", "b", Some("c".to_string()), None, "d"))
             .region(Region::new("us-east-1"))
             .http_client(http_client)
-            .behavior_version(BehaviorVersion::v2023_11_09())
+            .behavior_version(BehaviorVersion::latest())
             .build();
 
         Client::from_conf(conf)

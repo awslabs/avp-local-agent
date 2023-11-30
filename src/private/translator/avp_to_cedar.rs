@@ -42,7 +42,7 @@ impl TryFrom<PolicyDefinition> for Policy {
                     Some(policy_id.clone()),
                     definition_detail.statement,
                 )
-                .map_err(|_e| TranslatorException::ParsePolicy(policy_id.to_string()))?;
+                .map_err(|_| TranslatorException::ParsePolicy(policy_id.to_string()))?;
                 debug!("Translated AVP Policy Definition to a Cedar Static Policy: policy_id={policy_id:?}");
                 Ok(Static(cedar_policy))
             }
