@@ -4,6 +4,7 @@ use std::time::Duration;
 use aws_config::default_provider::credentials::DefaultCredentialsChain;
 use aws_config::retry::RetryConfig;
 use aws_config::timeout::TimeoutConfig;
+use aws_config::BehaviorVersion;
 use aws_credential_types::provider::SharedCredentialsProvider;
 use aws_sdk_verifiedpermissions::config::SharedAsyncSleep;
 use aws_sdk_verifiedpermissions::Client;
@@ -35,6 +36,7 @@ pub fn verified_permissions_with_credentials(
             .credentials_provider(credentials)
             .retry_config(RetryConfig::standard().with_max_attempts(AVP_CLIENT_MAX_ATTEMPTS))
             .sleep_impl(SharedAsyncSleep::new(TokioSleep::new()))
+            .behavior_version(BehaviorVersion::latest())
             .build(),
     )
 }
@@ -62,6 +64,7 @@ pub async fn verified_permissions_default_credentials(region: Region) -> Client 
             .credentials_provider(creds)
             .retry_config(RetryConfig::standard().with_max_attempts(AVP_CLIENT_MAX_ATTEMPTS))
             .sleep_impl(SharedAsyncSleep::new(TokioSleep::new()))
+            .behavior_version(BehaviorVersion::latest())
             .build(),
     )
 }

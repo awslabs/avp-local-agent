@@ -11,7 +11,7 @@ use thiserror::Error;
 use tokio::runtime::Handle;
 use tokio::sync::{Mutex, RwLock};
 use tokio::task;
-use tracing::{debug, error, info, instrument};
+use tracing::{error, info, instrument};
 
 use cedar_local_agent::public::{
     EntityProviderError, SimpleEntityProvider, UpdateProviderData, UpdateProviderDataError,
@@ -113,24 +113,13 @@ impl EntityProvider {
 
         match fetch_schema_result {
             Ok(get_schema_output) => {
-                if let Some(schema_str) = get_schema_output.schema {
-                    let schema = Schema::from_str(schema_str.as_str())?;
+                let schema = Schema::from_str(&get_schema_output.schema)?;
 
-                    Ok(Self {
-                        policy_store_id,
-                        schema_source,
-                        entities: RwLock::new(Arc::new(schema.action_entities()?)),
-                    })
-                } else {
-                    debug!(
-                        "No Schema defined at Policy Store: policy_store_id={policy_store_id:?}"
-                    );
-                    Ok(Self {
-                        policy_store_id,
-                        schema_source,
-                        entities: RwLock::new(Arc::new(Entities::empty())),
-                    })
-                }
+                Ok(Self {
+                    policy_store_id,
+                    schema_source,
+                    entities: RwLock::new(Arc::new(schema.action_entities()?)),
+                })
             }
             Err(error) => match error {
                 SchemaException::AccessDenied(_)
@@ -172,20 +161,12 @@ impl UpdateProviderData for EntityProvider {
 
         let entities = match fetch_schema_result {
             Ok(get_schema_output) => {
-                if let Some(schema_str) = get_schema_output.schema {
-                    let schema = Schema::from_str(schema_str.as_str()).map_err(|e| {
-                        UpdateProviderDataError::General(Box::new(ProviderError::from(e)))
-                    })?;
-                    schema.action_entities().map_err(|e| {
-                        UpdateProviderDataError::General(Box::new(ProviderError::from(e)))
-                    })?
-                } else {
-                    debug!(
-                        "No Schema defined at Policy Store: policy_store_id={:?}",
-                        self.policy_store_id.clone()
-                    );
-                    Entities::empty()
-                }
+                let schema = Schema::from_str(&get_schema_output.schema).map_err(|e| {
+                    UpdateProviderDataError::General(Box::new(ProviderError::from(e)))
+                })?;
+                schema.action_entities().map_err(|e| {
+                    UpdateProviderDataError::General(Box::new(ProviderError::from(e)))
+                })?
             }
             Err(error) => match error {
                 SchemaException::AccessDenied(_)

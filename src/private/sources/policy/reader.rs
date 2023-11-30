@@ -4,7 +4,7 @@
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::operation::get_policy::{GetPolicyError, GetPolicyOutput};
 use aws_sdk_verifiedpermissions::Client;
-use aws_smithy_http::result::SdkError;
+use aws_smithy_runtime_api::client::result::SdkError;
 use tracing::instrument;
 
 use crate::private::sources::policy::error::PolicyException;
@@ -90,16 +90,13 @@ impl Read for GetPolicy {
 
 #[cfg(test)]
 mod tests {
-    use aws_smithy_http::body::SdkBody;
-    use http::{Request, Response, StatusCode};
-
     use crate::private::sources::policy::core::test::{
         build_entity_identifier, build_get_policy_response, GetPolicyRequest,
         PolicyDefinitionDetailRaw, StaticPolicyDefinitionDetailRaw,
     };
     use crate::private::sources::policy::reader::{GetPolicy, GetPolicyInput};
     use crate::private::sources::retry::BackoffStrategy;
-    use crate::private::sources::test::{build_client, build_event};
+    use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::sources::Read;
     use crate::private::types::policy_id::PolicyId;
     use crate::private::types::policy_store_id::PolicyStoreId;
@@ -142,16 +139,10 @@ mod tests {
         };
         let result = policy_reader.read(read_input).await.unwrap();
 
-        assert_eq!(result.policy_id.unwrap(), policy_id.to_string());
-        assert_eq!(result.policy_store_id.unwrap(), policy_store_id.to_string());
-        assert_eq!(
-            result.principal.unwrap().entity_id.unwrap(),
-            principal_entity_id
-        );
-        assert_eq!(
-            result.resource.unwrap().entity_id.unwrap(),
-            resource_entity_id
-        );
+        assert_eq!(result.policy_id, policy_id.to_string());
+        assert_eq!(result.policy_store_id, policy_store_id.to_string());
+        assert_eq!(result.principal.unwrap().entity_id, principal_entity_id);
+        assert_eq!(result.resource.unwrap().entity_id, resource_entity_id);
         assert_eq!(
             result
                 .definition
@@ -163,7 +154,7 @@ mod tests {
                 .unwrap(),
             policy_definition_detail_definition
         );
-        assert_eq!(result.policy_type.unwrap().as_str(), policy_type);
+        assert_eq!(result.policy_type.as_str(), policy_type);
     }
 
     #[tokio::test]
@@ -176,15 +167,7 @@ mod tests {
             policy_store_id: policy_store_id.to_string(),
         };
 
-        let events = vec![(
-            Request::new(SdkBody::from(serde_json::to_string(&request).unwrap())),
-            Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body(SdkBody::from(
-                    "The request was rejected because it was invalid",
-                ))
-                .unwrap(),
-        )];
+        let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
 
         let client = build_client(events);
         let policy_reader = GetPolicy::new(client, BackoffStrategy::default());

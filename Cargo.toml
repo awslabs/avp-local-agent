@@ -27,7 +27,6 @@ backoff = { version = "0.4.0" , features = ["tokio"] }
 chrono = "0.4.26"
 derive_builder = "0.12.0"
 futures = { version = "0.3.28", features = ["std"] }
-http = "0.2.9"
 once_cell = "1.18.0"
 serde = { version = "1.0.166", features = ["derive"] }
 serde_json = "1.0.100"
@@ -50,21 +49,22 @@ cedar-policy-formatter = "2.3.0"
 cedar-policy-validator = "2.3.0"
 
 # AWS
-aws-config = "0.56"
-aws-credential-types = "0.56"
-aws-sdk-verifiedpermissions = "0.2.0"
-aws-smithy-async = "0.56"
-aws-smithy-http = "0.56"
-aws-types = "0.56"
+aws-config = "1.0.1"
+aws-credential-types = "1.0.1"
+aws-sdk-verifiedpermissions = "1.3.0"
+aws-smithy-async = "1.0.2"
+aws-smithy-http = "0.60.0"
+aws-smithy-runtime-api = "1.0.2"
+aws-types = "1.0.1"
 
 [dev-dependencies]
 # Mocking out aws sdk requests
-aws-smithy-async = "0.56"
-aws-smithy-client = { version = "0.56", features = ["test-util"] }
-aws-smithy-http = "0.56"
-aws-smithy-types = "0.56"
-aws-types = "0.56"
-http = "0.2.9"
+aws-smithy-async = "1.0.2"
+aws-smithy-client = "0.60.0"
+aws-smithy-http = "0.60.0"
+aws-smithy-types = "1.0.2"
+aws-smithy-runtime = { version = "1.0.2", features = ["test-util"]}
+aws-types = "1.0.1"
 serial_test = "2.0.0"
 
 [features]

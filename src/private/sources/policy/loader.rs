@@ -8,8 +8,7 @@ use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::operation::list_policies::ListPoliciesOutput;
 use aws_sdk_verifiedpermissions::types::PolicyItem;
 use aws_sdk_verifiedpermissions::Client;
-use aws_smithy_http::result::SdkError;
-use futures::StreamExt;
+use aws_smithy_runtime_api::client::result::SdkError;
 use std::collections::HashMap;
 use tracing::{debug, instrument};
 
@@ -46,12 +45,8 @@ impl Load for ListPolicies {
             .send();
         while let Some(page) = client_results.next().await {
             let page: ListPoliciesOutput = page.map_err(SdkError::into_service_error)?;
-            if let Some(policies) = page.policies {
-                for policy in policies {
-                    if let Some(policy_id) = policy.policy_id.as_ref() {
-                        policy_ids_map.insert(PolicyId(policy_id.to_string()), policy.clone());
-                    }
-                }
+            for policy in page.policies {
+                policy_ids_map.insert(PolicyId(policy.policy_id.clone()), policy);
             }
         }
         debug!(
@@ -68,9 +63,8 @@ mod test {
         build_entity_identifier, build_policy_item, ListPoliciesRequest, ListPoliciesResponse,
     };
     use crate::private::sources::policy::loader::{ListPolicies, Load};
-    use crate::private::sources::test::{build_client, build_empty_event, build_event};
+    use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::types::{policy_id::PolicyId, policy_store_id::PolicyStoreId};
-    use http::StatusCode;
 
     #[tokio::test]
     async fn list_policies_empty_200() {
@@ -124,21 +118,9 @@ mod test {
         assert_eq!(results.len(), 1);
         assert!(results.contains_key(&PolicyId(policy_id.to_string())));
         let policy = results.get(&PolicyId(policy_id.to_string())).unwrap();
-        assert_eq!(policy.policy_type.as_ref().unwrap().as_str(), policy_type);
-        assert_eq!(
-            policy
-                .principal
-                .as_ref()
-                .unwrap()
-                .entity_id
-                .as_ref()
-                .unwrap(),
-            entity_id
-        );
-        assert_eq!(
-            policy.policy_store_id.as_ref().unwrap().to_string(),
-            policy_store_id.to_string()
-        );
+        assert_eq!(policy.policy_type.as_str(), policy_type);
+        assert_eq!(policy.principal.as_ref().unwrap().entity_id, entity_id);
+        assert_eq!(policy.policy_store_id, policy_store_id.to_string());
     }
 
     #[tokio::test]
@@ -190,31 +172,13 @@ mod test {
         assert!(results.contains_key(&PolicyId(policy_id_one.to_string())));
         assert!(results.contains_key(&PolicyId(policy_id_two.to_string())));
         let policy_one = results.get(&PolicyId(policy_id_one.to_string())).unwrap();
-        assert_eq!(
-            policy_one.policy_type.as_ref().unwrap().as_str(),
-            policy_type_one
-        );
-        assert_eq!(
-            policy_one.policy_store_id.as_ref().unwrap().to_string(),
-            policy_store_id.to_string()
-        );
-        assert_eq!(
-            policy_one.policy_id.as_ref().unwrap().to_string(),
-            policy_id_one.to_string()
-        );
+        assert_eq!(policy_one.policy_type.as_str(), policy_type_one);
+        assert_eq!(policy_one.policy_store_id, policy_store_id.to_string());
+        assert_eq!(policy_one.policy_id, policy_id_one.to_string());
         let policy_two = results.get(&PolicyId(policy_id_two.to_string())).unwrap();
-        assert_eq!(
-            policy_two.policy_type.as_ref().unwrap().as_str(),
-            policy_type_two
-        );
-        assert_eq!(
-            policy_two.policy_store_id.as_ref().unwrap().to_string(),
-            policy_store_id.to_string()
-        );
-        assert_eq!(
-            policy_two.policy_id.as_ref().unwrap().to_string(),
-            policy_id_two.to_string()
-        );
+        assert_eq!(policy_two.policy_type.as_str(), policy_type_two);
+        assert_eq!(policy_two.policy_store_id, policy_store_id.to_string());
+        assert_eq!(policy_two.policy_id, policy_id_two.to_string());
     }
 
     #[tokio::test]

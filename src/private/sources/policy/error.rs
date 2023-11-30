@@ -61,9 +61,6 @@ impl From<ListPoliciesError> for PolicyException {
 /// The enum for errors that occur when fetching data from a `PolicySource`.
 #[derive(Error, Debug)]
 pub enum PolicySourceException {
-    /// The policy returned by AVP does not contain a `PolicyId` field.
-    #[error("Policy id is not found.")]
-    PolicyIdNotFound(),
     /// The policy returned by AVP does not contain a `Definition` field.
     #[error("Policy definition is not found.")]
     PolicyDefinitionNotFound(),
@@ -97,17 +94,28 @@ mod tests {
         AccessDeniedException, InternalServerException, ResourceNotFoundException,
         ThrottlingException, ValidationException,
     };
-    use aws_smithy_types::error::Unhandled;
+    use aws_sdk_verifiedpermissions::types::ResourceType;
 
+    const MESSAGE: &str = "dummy-message";
     #[test]
     fn from_get_policy_error_resource_not_found_to_policy_exception_resource_not_found() {
         assert_eq!(
             PolicyException::from(GetPolicyError::ResourceNotFoundException(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::Policy)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
             PolicyException::ResourceNotFound(Box::new(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::Policy)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string()
         );
@@ -117,11 +125,19 @@ mod tests {
     fn from_get_policy_error_access_denied_to_policy_exception_access_denied() {
         assert_eq!(
             PolicyException::from(GetPolicyError::AccessDeniedException(
-                AccessDeniedException::builder().build()
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::AccessDenied(Box::new(AccessDeniedException::builder().build()))
-                .to_string()
+            PolicyException::AccessDenied(Box::new(
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -129,11 +145,19 @@ mod tests {
     fn from_get_policy_error_validation_to_policy_exception_validation() {
         assert_eq!(
             PolicyException::from(GetPolicyError::ValidationException(
-                ValidationException::builder().build()
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::Validation(Box::new(ValidationException::builder().build()))
-                .to_string()
+            PolicyException::Validation(Box::new(
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -141,11 +165,19 @@ mod tests {
     fn from_get_policy_error_internal_server_to_policy_exception_retryable() {
         assert_eq!(
             PolicyException::from(GetPolicyError::InternalServerException(
-                InternalServerException::builder().build()
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::Retryable(Box::new(InternalServerException::builder().build()))
-                .to_string()
+            PolicyException::Retryable(Box::new(
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -153,28 +185,38 @@ mod tests {
     fn from_get_policy_error_throttling_to_policy_exception_retryable() {
         assert_eq!(
             PolicyException::from(GetPolicyError::ThrottlingException(
-                ThrottlingException::builder().build()
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::Retryable(Box::new(ThrottlingException::builder().build()))
-                .to_string()
+            PolicyException::Retryable(Box::new(
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
     #[test]
     fn from_get_policy_error_unhandled_to_policy_exception_unhandled() {
         assert_eq!(
-            PolicyException::from(GetPolicyError::Unhandled(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            PolicyException::from(GetPolicyError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::Unhandled(Box::new(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            PolicyException::Unhandled(Box::new(GetPolicyError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
-            ))
+                    .unwrap()
+            )))
             .to_string()
         );
     }
@@ -183,11 +225,21 @@ mod tests {
     fn from_list_policies_error_resource_not_found_to_policy_exception_resource_not_found() {
         assert_eq!(
             PolicyException::from(ListPoliciesError::ResourceNotFoundException(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::Policy)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string(),
             PolicyException::ResourceNotFound(Box::new(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::Policy)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             ))
             .to_string()
         );
@@ -197,11 +249,19 @@ mod tests {
     fn from_list_policies_error_access_denied_to_policy_exception_access_denied() {
         assert_eq!(
             PolicyException::from(ListPoliciesError::AccessDeniedException(
-                AccessDeniedException::builder().build()
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::AccessDenied(Box::new(AccessDeniedException::builder().build()))
-                .to_string()
+            PolicyException::AccessDenied(Box::new(
+                AccessDeniedException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -209,11 +269,19 @@ mod tests {
     fn from_list_policies_error_validation_to_policy_exception_validation() {
         assert_eq!(
             PolicyException::from(ListPoliciesError::ValidationException(
-                ValidationException::builder().build()
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::Validation(Box::new(ValidationException::builder().build()))
-                .to_string()
+            PolicyException::Validation(Box::new(
+                ValidationException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -221,11 +289,19 @@ mod tests {
     fn from_list_policies_error_internal_server_to_policy_exception_retryable() {
         assert_eq!(
             PolicyException::from(ListPoliciesError::InternalServerException(
-                InternalServerException::builder().build()
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::Retryable(Box::new(InternalServerException::builder().build()))
-                .to_string()
+            PolicyException::Retryable(Box::new(
+                InternalServerException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
@@ -233,28 +309,38 @@ mod tests {
     fn from_list_policies_error_throttling_to_policy_exception_retryable() {
         assert_eq!(
             PolicyException::from(ListPoliciesError::ThrottlingException(
-                ThrottlingException::builder().build()
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::Retryable(Box::new(ThrottlingException::builder().build()))
-                .to_string()
+            PolicyException::Retryable(Box::new(
+                ThrottlingException::builder()
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap()
+            ))
+            .to_string()
         );
     }
 
     #[test]
     fn from_list_policies_error_unhandled_to_policy_exception_unhandled() {
         assert_eq!(
-            PolicyException::from(ListPoliciesError::Unhandled(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            PolicyException::from(ListPoliciesError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
+                    .unwrap()
             ))
             .to_string(),
-            PolicyException::Unhandled(Box::new(
-                Unhandled::builder()
-                    .source(Box::new(ValidationException::builder().build()))
+            PolicyException::Unhandled(Box::new(ListPoliciesError::unhandled(
+                ValidationException::builder()
+                    .message(MESSAGE)
                     .build()
-            ))
+                    .unwrap()
+            )))
             .to_string()
         );
     }
@@ -263,11 +349,21 @@ mod tests {
     fn from_policy_exception_to_policy_source_exception_policy_source() {
         assert_eq!(
             PolicySourceException::from(PolicyException::ResourceNotFound(Box::new(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::Policy)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             )))
             .to_string(),
             PolicySourceException::PolicySource(PolicyException::ResourceNotFound(Box::new(
-                ResourceNotFoundException::builder().build()
+                ResourceNotFoundException::builder()
+                    .resource_id("id")
+                    .resource_type(ResourceType::Policy)
+                    .message(MESSAGE)
+                    .build()
+                    .unwrap(),
             )))
             .to_string()
         );
@@ -276,12 +372,9 @@ mod tests {
     #[test]
     fn from_policy_translator_exception_to_policy_source_exception_translator_exception() {
         assert_eq!(
-            PolicySourceException::from(TranslatorException::StaticPolicyStatementNotFound())
-                .to_string(),
-            PolicySourceException::TranslatorException(
-                TranslatorException::StaticPolicyStatementNotFound()
-            )
-            .to_string()
+            PolicySourceException::from(TranslatorException::InvalidInput()).to_string(),
+            PolicySourceException::TranslatorException(TranslatorException::InvalidInput())
+                .to_string()
         );
     }
 }

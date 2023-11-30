@@ -90,11 +90,32 @@ mod test {
     use chrono::{Duration, Utc};
     use std::collections::HashMap;
 
+    fn create_get_policy_template_output(policy_store_id: &str) -> GetPolicyTemplateOutput {
+        GetPolicyTemplateOutput::builder()
+            .policy_store_id(policy_store_id)
+            .policy_template_id("pt-1")
+            .statement("statement")
+            .created_date(DateTime::from_secs(0))
+            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
+            .build()
+            .unwrap()
+    }
+
+    fn create_template_item(last_updated_date: DateTime) -> PolicyTemplateItem {
+        PolicyTemplateItem::builder()
+            .policy_store_id("ps-1")
+            .policy_template_id("pt-1")
+            .created_date(DateTime::from_secs(0))
+            .last_updated_date(last_updated_date)
+            .build()
+            .unwrap()
+    }
+
     #[test]
     fn put_on_a_missing_key_returns_none() {
         let mut template_cache = GetPolicyTemplateOutputCache::new();
         let missing_key = TemplateId("missing_key".to_string());
-        let value = GetPolicyTemplateOutput::builder().build();
+        let value = create_get_policy_template_output("ps-1");
         assert_eq!(template_cache.put(missing_key, value), None);
     }
 
@@ -102,12 +123,8 @@ mod test {
     fn put_on_a_present_key_returns_old_value() {
         let mut template_cache = GetPolicyTemplateOutputCache::new();
         let key = TemplateId("key".to_string());
-        let value1 = GetPolicyTemplateOutput::builder()
-            .policy_store_id("ps-1")
-            .build();
-        let value2 = GetPolicyTemplateOutput::builder()
-            .policy_store_id("ps-2")
-            .build();
+        let value1 = create_get_policy_template_output("ps-1");
+        let value2 = create_get_policy_template_output("ps-2");
 
         assert_eq!(template_cache.put(key.clone(), value1.clone()), None);
         assert_eq!(template_cache.put(key, value2), Some(value1));
@@ -124,7 +141,7 @@ mod test {
     fn get_on_a_missing_key_returns_none() {
         let mut template_cache = GetPolicyTemplateOutputCache::new();
         let key = TemplateId("key".to_string());
-        let value = GetPolicyTemplateOutput::builder().build();
+        let value = create_get_policy_template_output("ps-1");
         let missing_key = TemplateId("missing_key".to_string());
 
         assert_eq!(template_cache.put(key, value), None);
@@ -135,7 +152,7 @@ mod test {
     fn get_on_a_present_key_returns_value() {
         let mut template_cache = GetPolicyTemplateOutputCache::new();
         let key = TemplateId("key".to_string());
-        let value = GetPolicyTemplateOutput::builder().build();
+        let value = create_get_policy_template_output("ps-1");
         assert_eq!(template_cache.put(key.clone(), value.clone()), None);
         assert_eq!(template_cache.get(&key), Some(&value));
     }
@@ -151,9 +168,7 @@ mod test {
     fn remove_on_a_present_key_returns_value() {
         let mut template_cache = GetPolicyTemplateOutputCache::new();
         let key = TemplateId("key".to_string());
-        let value1 = GetPolicyTemplateOutput::builder()
-            .policy_store_id("ps-1")
-            .build();
+        let value1 = create_get_policy_template_output("ps-1");
 
         assert_eq!(template_cache.put(key.clone(), value1.clone()), None);
         assert_eq!(template_cache.remove(&key), Some(value1));
@@ -166,14 +181,8 @@ mod test {
         let mut loaded_templates: HashMap<TemplateId, PolicyTemplateItem> = HashMap::new();
 
         let key = TemplateId("pt-1".to_string());
-        let template_output = GetPolicyTemplateOutput::builder()
-            .policy_template_id("pt-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
-        let template_item = PolicyTemplateItem::builder()
-            .policy_template_id("pt-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
+        let template_output = create_get_policy_template_output("ps-1");
+        let template_item = create_template_item(DateTime::from_secs(Utc::now().timestamp()));
 
         template_cache.put(key.clone(), template_output);
         loaded_templates.insert(key, template_item);
@@ -189,10 +198,7 @@ mod test {
         let loaded_templates: HashMap<TemplateId, PolicyTemplateItem> = HashMap::new();
 
         let key = TemplateId("pt-1".to_string());
-        let template_output = GetPolicyTemplateOutput::builder()
-            .policy_template_id("pt-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
+        let template_output = create_get_policy_template_output("ps-1");
 
         template_cache.put(key.clone(), template_output);
 
@@ -207,16 +213,10 @@ mod test {
         let mut loaded_templates: HashMap<TemplateId, PolicyTemplateItem> = HashMap::new();
 
         let key = TemplateId("pt-1".to_string());
-        let template_output = GetPolicyTemplateOutput::builder()
-            .policy_template_id("pt-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
-        let template_item = PolicyTemplateItem::builder()
-            .policy_template_id("pt-1")
-            .last_updated_date(DateTime::from_secs(
-                (Utc::now() + Duration::minutes(1)).timestamp(),
-            ))
-            .build();
+        let template_output = create_get_policy_template_output("ps-1");
+        let template_item = create_template_item(DateTime::from_secs(
+            (Utc::now() + Duration::minutes(1)).timestamp(),
+        ));
 
         template_cache.put(key.clone(), template_output);
         loaded_templates.insert(key.clone(), template_item);
@@ -232,10 +232,7 @@ mod test {
         let mut loaded_templates: HashMap<TemplateId, PolicyTemplateItem> = HashMap::new();
 
         let key = TemplateId("pt-1".to_string());
-        let template_item = PolicyTemplateItem::builder()
-            .policy_template_id("pt-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
+        let template_item = create_template_item(DateTime::from_secs(Utc::now().timestamp()));
 
         loaded_templates.insert(key.clone(), template_item);
 

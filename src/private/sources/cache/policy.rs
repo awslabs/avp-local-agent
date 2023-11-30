@@ -85,16 +85,38 @@ mod test {
     use crate::private::sources::{Cache, CacheChange};
     use crate::private::types::policy_id::PolicyId;
     use aws_sdk_verifiedpermissions::operation::get_policy::GetPolicyOutput;
-    use aws_sdk_verifiedpermissions::types::PolicyItem;
+    use aws_sdk_verifiedpermissions::types::{PolicyItem, PolicyType};
     use aws_smithy_types::DateTime;
     use chrono::{Duration, Utc};
     use std::collections::HashMap;
+
+    fn create_get_policy_output(policy_store_id: &str) -> GetPolicyOutput {
+        GetPolicyOutput::builder()
+            .policy_store_id(policy_store_id)
+            .policy_id("policy-id")
+            .policy_type(PolicyType::Static)
+            .created_date(DateTime::from_secs(0))
+            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
+            .build()
+            .unwrap()
+    }
+
+    fn create_policy_item(last_updated_date: DateTime) -> PolicyItem {
+        PolicyItem::builder()
+            .policy_store_id("ps-1")
+            .policy_id("p-1")
+            .policy_type(PolicyType::Static)
+            .created_date(DateTime::from_secs(0))
+            .last_updated_date(last_updated_date)
+            .build()
+            .unwrap()
+    }
 
     #[test]
     fn put_on_a_missing_key_returns_none() {
         let mut policy_cache = GetPolicyOutputCache::new();
         let missing_key = PolicyId("missing_key".to_string());
-        let value = GetPolicyOutput::builder().build();
+        let value = create_get_policy_output("ps-1");
         assert_eq!(policy_cache.put(missing_key, value), None);
     }
 
@@ -102,8 +124,8 @@ mod test {
     fn put_on_a_present_key_returns_old_value() {
         let mut policy_cache = GetPolicyOutputCache::new();
         let key = PolicyId("key".to_string());
-        let value1 = GetPolicyOutput::builder().policy_store_id("ps-1").build();
-        let value2 = GetPolicyOutput::builder().policy_store_id("ps-2").build();
+        let value1 = create_get_policy_output("ps-1");
+        let value2 = create_get_policy_output("ps-2");
 
         assert_eq!(policy_cache.put(key.clone(), value1.clone()), None);
         assert_eq!(policy_cache.put(key, value2), Some(value1));
@@ -120,7 +142,7 @@ mod test {
     fn get_on_a_missing_key_returns_none() {
         let mut policy_cache = GetPolicyOutputCache::new();
         let key = PolicyId("key".to_string());
-        let value = GetPolicyOutput::builder().build();
+        let value = create_get_policy_output("ps-1");
         let missing_key = PolicyId("missing_key".to_string());
 
         assert_eq!(policy_cache.put(key, value), None);
@@ -131,7 +153,7 @@ mod test {
     fn get_on_a_present_key_returns_value() {
         let mut policy_cache = GetPolicyOutputCache::new();
         let key = PolicyId("key".to_string());
-        let value = GetPolicyOutput::builder().build();
+        let value = create_get_policy_output("ps-1");
         assert_eq!(policy_cache.put(key.clone(), value.clone()), None);
         assert_eq!(policy_cache.get(&key), Some(&value));
     }
@@ -147,7 +169,7 @@ mod test {
     fn remove_on_a_present_key_returns_value() {
         let mut policy_cache = GetPolicyOutputCache::new();
         let key = PolicyId("key".to_string());
-        let value1 = GetPolicyOutput::builder().policy_store_id("ps-1").build();
+        let value1 = create_get_policy_output("ps-1");
 
         assert_eq!(policy_cache.put(key.clone(), value1.clone()), None);
         assert_eq!(policy_cache.remove(&key), Some(value1));
@@ -160,14 +182,8 @@ mod test {
         let mut loaded_policies: HashMap<PolicyId, PolicyItem> = HashMap::new();
 
         let key = PolicyId("p-1".to_string());
-        let policy_output = GetPolicyOutput::builder()
-            .policy_id("p-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
-        let policy_item = PolicyItem::builder()
-            .policy_id("p-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
+        let policy_output = create_get_policy_output("ps-1");
+        let policy_item = create_policy_item(DateTime::from_secs(Utc::now().timestamp()));
 
         policy_cache.put(key.clone(), policy_output);
         loaded_policies.insert(key, policy_item);
@@ -183,10 +199,7 @@ mod test {
         let loaded_policies: HashMap<PolicyId, PolicyItem> = HashMap::new();
 
         let key = PolicyId("p-1".to_string());
-        let policy_output = GetPolicyOutput::builder()
-            .policy_id("p-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
+        let policy_output = create_get_policy_output("ps-1");
 
         policy_cache.put(key.clone(), policy_output);
 
@@ -201,16 +214,10 @@ mod test {
         let mut loaded_policies: HashMap<PolicyId, PolicyItem> = HashMap::new();
 
         let key = PolicyId("p-1".to_string());
-        let policy_output = GetPolicyOutput::builder()
-            .policy_id("p-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
-        let policy_item = PolicyItem::builder()
-            .policy_id("p-1")
-            .last_updated_date(DateTime::from_secs(
-                (Utc::now() + Duration::minutes(1)).timestamp(),
-            ))
-            .build();
+        let policy_output = create_get_policy_output("ps-1");
+        let policy_item = create_policy_item(DateTime::from_secs(
+            (Utc::now() + Duration::minutes(1)).timestamp(),
+        ));
 
         policy_cache.put(key.clone(), policy_output);
         loaded_policies.insert(key.clone(), policy_item);
@@ -226,10 +233,7 @@ mod test {
         let mut loaded_policies: HashMap<PolicyId, PolicyItem> = HashMap::new();
 
         let key = PolicyId("p-1".to_string());
-        let policy_item = PolicyItem::builder()
-            .policy_id("p-1")
-            .last_updated_date(DateTime::from_secs(Utc::now().timestamp()))
-            .build();
+        let policy_item = create_policy_item(DateTime::from_secs(Utc::now().timestamp()));
 
         loaded_policies.insert(key.clone(), policy_item);
 

@@ -6,7 +6,7 @@ use aws_sdk_verifiedpermissions::operation::get_policy_template::{
     GetPolicyTemplateError, GetPolicyTemplateOutput,
 };
 use aws_sdk_verifiedpermissions::Client;
-use aws_smithy_http::result::SdkError;
+use aws_smithy_runtime_api::client::result::SdkError;
 use tracing::instrument;
 
 use crate::private::sources::retry::BackoffStrategy;
@@ -98,7 +98,6 @@ impl Read for GetPolicyTemplate {
 #[cfg(test)]
 mod test {
     use crate::private::sources::retry::BackoffStrategy;
-    use http::StatusCode;
 
     use crate::private::sources::template::core::test::{
         build_get_policy_template_response, GetPolicyTemplateRequest,
@@ -106,7 +105,7 @@ mod test {
     use crate::private::sources::template::reader::{
         GetPolicyTemplate, GetPolicyTemplateInput, Read,
     };
-    use crate::private::sources::test::{build_client, build_empty_event, build_event};
+    use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::types::policy_store_id::PolicyStoreId;
     use crate::private::types::template_id::TemplateId;
 
@@ -139,7 +138,7 @@ mod test {
         };
         let result = template_reader.read(read_input).await.unwrap();
 
-        assert_eq!(response.statement, result.statement.unwrap());
+        assert_eq!(response.statement, result.statement);
     }
 
     #[tokio::test]

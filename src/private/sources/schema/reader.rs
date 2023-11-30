@@ -7,7 +7,7 @@ use crate::private::types::policy_store_id::PolicyStoreId;
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::operation::get_schema::{GetSchemaError, GetSchemaOutput};
 use aws_sdk_verifiedpermissions::Client;
-use aws_smithy_http::result::SdkError;
+use aws_smithy_runtime_api::client::result::SdkError;
 use tracing::instrument;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving the schema.
@@ -63,11 +63,10 @@ impl Read for GetSchema {
 mod test {
     use crate::private::sources::retry::BackoffStrategy;
     use crate::private::sources::schema::reader::GetSchema;
-    use crate::private::sources::test::{build_client, build_empty_event, build_event};
+    use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::sources::Read;
     use crate::private::types::policy_store_id::PolicyStoreId;
     use chrono::Utc;
-    use http::StatusCode;
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -108,7 +107,7 @@ mod test {
         let schema_reader = GetSchema::new(client, BackoffStrategy::default());
         let result = schema_reader.read(policy_store_id).await.unwrap();
 
-        assert_eq!(response.schema, result.schema.unwrap());
+        assert_eq!(response.schema, result.schema);
     }
 
     #[tokio::test]

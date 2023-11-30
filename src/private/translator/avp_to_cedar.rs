@@ -38,20 +38,17 @@ impl TryFrom<PolicyDefinition> for Policy {
 
         match detail {
             PolicyDefinitionDetail::Static(definition_detail) => {
-                let statement = definition_detail
-                    .statement
-                    .ok_or_else(TranslatorException::StaticPolicyStatementNotFound)?;
-
-                let cedar_policy = cedar_policy::Policy::parse(Some(policy_id.clone()), statement)
-                    .map_err(|_e| TranslatorException::ParsePolicy(policy_id.to_string()))?;
+                let cedar_policy = cedar_policy::Policy::parse(
+                    Some(policy_id.clone()),
+                    definition_detail.statement,
+                )
+                .map_err(|_| TranslatorException::ParsePolicy(policy_id.to_string()))?;
                 debug!("Translated AVP Policy Definition to a Cedar Static Policy: policy_id={policy_id:?}");
                 Ok(Static(cedar_policy))
             }
 
             PolicyDefinitionDetail::TemplateLinked(definition_detail) => {
-                let template_id = definition_detail
-                    .policy_template_id
-                    .ok_or_else(TranslatorException::TemplateIdNotFound)?;
+                let template_id = definition_detail.policy_template_id;
 
                 let mut entity_map: HashMap<SlotId, EntityUid> = HashMap::new();
                 update_entity_map(
@@ -66,7 +63,7 @@ impl TryFrom<PolicyDefinition> for Policy {
                     SlotId::resource(),
                     definition_detail.resource,
                 )?;
-                debug!("Translated AVP Policy Definition to a Cedar Template Linked Policy: policy_id={policy_id:?}: template_id={template_id:?}");
+                debug!("Translated AVP Policy Definition to a Cedar Template Linked Policy: policy_id={policy_id}: template_id={template_id}");
                 Ok(TemplateLinked(
                     PolicyId(policy_id),
                     TemplateId(template_id),
@@ -85,18 +82,17 @@ impl TryFrom<GetPolicyTemplateOutput> for Template {
 
     #[instrument(skip(template_output), err(Debug))]
     fn try_from(template_output: GetPolicyTemplateOutput) -> Result<Self, Self::Error> {
-        let statement = template_output
-            .statement
-            .ok_or_else(TranslatorException::TemplateStatementNotFound)?;
-
         let policy_template_id = template_output.policy_template_id;
-        let policy_template_id_to_str = policy_template_id
-            .clone()
-            .map_or_else(|| "Template id does not exist".to_string(), |s| s);
 
-        let cedar_template = cedar_policy::Template::parse(policy_template_id, statement)
-            .map_err(|_e| TranslatorException::ParseTemplate(policy_template_id_to_str.clone()))?;
-        debug!("Translated AVP Policy Template to a Cedar Template: template_id={policy_template_id_to_str:?}");
+        let cedar_template = cedar_policy::Template::parse(
+            Some(policy_template_id.clone()),
+            template_output.statement,
+        )
+        .map_err(|_| TranslatorException::ParseTemplate(policy_template_id.clone()))?;
+
+        debug!(
+            "Translated AVP Policy Template to a Cedar Template: template_id={policy_template_id}"
+        );
         Ok(Self(cedar_template))
     }
 }
@@ -130,17 +126,9 @@ fn update_entity_map(
     option_identifier: Option<EntityIdentifier>,
 ) -> Result<(), TranslatorException> {
     if let Some(identifier) = option_identifier {
-        let identifier_type = identifier
-            .entity_type
-            .ok_or_else(TranslatorException::EntityNameNotFound)?;
-
-        let identifier_id = identifier
-            .entity_id
-            .ok_or_else(TranslatorException::EntityIdNotFound)?;
-
-        let entity_name = EntityTypeName::from_str(identifier_type.as_str())
+        let entity_name = EntityTypeName::from_str(&identifier.entity_type)
             .map_err(|_e| TranslatorException::ParseEntity(policy_id.clone()))?;
-        let entity_id = EntityId::from_str(identifier_id.as_str())
+        let entity_id = EntityId::from_str(&identifier.entity_id)
             .map_err(|_e| TranslatorException::ParseEntity(policy_id))?;
         let entity = EntityUid::from_type_name_and_id(entity_name, entity_id);
         entity_map.insert(slot_id, entity);
@@ -151,18 +139,19 @@ fn update_entity_map(
 #[cfg(test)]
 mod test {
     use crate::private::sources::policy::core::PolicyDefinition;
-    use crate::private::translator::avp_to_cedar::{update_entity_map, Policy, Schema, Template};
+    use crate::private::translator::avp_to_cedar::{Policy, Schema, Template};
     use crate::private::translator::error::TranslatorException;
     use aws_sdk_verifiedpermissions::operation::get_policy_template::GetPolicyTemplateOutput;
     use aws_sdk_verifiedpermissions::types::{
         EntityIdentifier, PolicyDefinitionDetail, StaticPolicyDefinitionDetail,
         TemplateLinkedPolicyDefinitionDetail,
     };
-    use cedar_policy::{Entities, EntityUid, SlotId};
+    use aws_smithy_types::DateTime;
+    use cedar_policy::Entities;
     use cedar_policy_core::entities::EntitiesError;
-    use std::collections::HashMap;
 
     const POLICY_ID: &str = "dummy-policy-id";
+    const POLICY_STORE_ID: &str = "dummy-policy-store-id";
     const TEMPLATE_ID: &str = "dummy-template-id";
     const VALID_POLICY: &str = r#"
         permit(
@@ -256,6 +245,7 @@ mod test {
             .entity_id(PRINCIPAL_ENTITY_ID)
             .entity_type(PRINCIPAL_ENTITY_TYPE)
             .build()
+            .unwrap()
     }
 
     fn generate_resource_identifier() -> EntityIdentifier {
@@ -263,6 +253,7 @@ mod test {
             .entity_id(RESOURCE_ENTITY_ID)
             .entity_type(RESOURCE_ENTITY_TYPE)
             .build()
+            .unwrap()
     }
 
     fn generate_action_entity() -> Result<Entities, EntitiesError> {
@@ -277,7 +268,8 @@ mod test {
     fn static_policy_valid_translation() {
         let definition_detail = StaticPolicyDefinitionDetail::builder()
             .statement(VALID_POLICY)
-            .build();
+            .build()
+            .unwrap();
 
         let definition = PolicyDefinition {
             policy_id: POLICY_ID.to_string(),
@@ -293,7 +285,8 @@ mod test {
     fn static_policy_translation_invalid_policy() {
         let definition_detail = StaticPolicyDefinitionDetail::builder()
             .statement(INVALID_POLICY)
-            .build();
+            .build()
+            .unwrap();
 
         let definition = PolicyDefinition {
             policy_id: POLICY_ID.to_string(),
@@ -309,32 +302,13 @@ mod test {
     }
 
     #[test]
-    fn static_policy_translation_without_statement() {
-        let definition_detail = StaticPolicyDefinitionDetail::builder().build();
-
-        let definition = PolicyDefinition {
-            policy_id: POLICY_ID.to_string(),
-            detail: PolicyDefinitionDetail::Static(definition_detail),
-        };
-
-        let error = Policy::try_from(definition);
-        assert!(matches!(
-            error,
-            Err(TranslatorException::StaticPolicyStatementNotFound(..)),
-        ));
-        assert_eq!(
-            error.err().unwrap().to_string(),
-            "Static policy statement is not found.",
-        );
-    }
-
-    #[test]
     fn template_linked_policy_valid_translation() {
         let definition_detail = TemplateLinkedPolicyDefinitionDetail::builder()
             .policy_template_id(TEMPLATE_ID.to_string())
             .principal(generate_principal_identifier())
             .resource(generate_resource_identifier())
-            .build();
+            .build()
+            .unwrap();
 
         let definition = PolicyDefinition {
             policy_id: POLICY_ID.to_string(),
@@ -345,36 +319,17 @@ mod test {
         assert!(matches!(res.ok().unwrap(), Policy::TemplateLinked(..)));
     }
 
-    #[test]
-    fn template_linked_policy_translation_without_template_id() {
-        let definition_detail = TemplateLinkedPolicyDefinitionDetail::builder()
-            .principal(generate_principal_identifier())
-            .resource(generate_resource_identifier())
-            .build();
-
-        let definition = PolicyDefinition {
-            policy_id: POLICY_ID.to_string(),
-            detail: PolicyDefinitionDetail::TemplateLinked(definition_detail),
-        };
-
-        let error = Policy::try_from(definition);
-        assert!(matches!(
-            error,
-            Err(TranslatorException::TemplateIdNotFound()),
-        ));
-        assert_eq!(
-            error.err().unwrap().to_string(),
-            "Template id is not found."
-        );
-    }
-
     // Template Translator Tests
     #[test]
     fn template_translator_valid_translation() {
         let template_output = GetPolicyTemplateOutput::builder()
+            .policy_store_id(POLICY_STORE_ID)
             .policy_template_id(TEMPLATE_ID)
             .statement(VALID_TEMPLATE)
-            .build();
+            .created_date(DateTime::from_secs(0))
+            .last_updated_date(DateTime::from_secs(0))
+            .build()
+            .unwrap();
         let res = Template::try_from(template_output);
         assert!(res.is_ok());
         let Template(template) = res.unwrap();
@@ -382,28 +337,15 @@ mod test {
     }
 
     #[test]
-    fn template_translator_template_statement_not_found() {
-        let output_without_statement = GetPolicyTemplateOutput::builder()
-            .policy_template_id(TEMPLATE_ID)
-            .build();
-
-        let error = Template::try_from(output_without_statement);
-        assert!(matches!(
-            error,
-            Err(TranslatorException::TemplateStatementNotFound(..))
-        ));
-        assert_eq!(
-            error.err().unwrap().to_string(),
-            "Template statement is not found.",
-        );
-    }
-
-    #[test]
     fn template_translator_parsing_error() {
         let output = GetPolicyTemplateOutput::builder()
+            .policy_store_id(POLICY_STORE_ID)
             .policy_template_id(TEMPLATE_ID)
             .statement(INVALID_TEMPLATE)
-            .build();
+            .created_date(DateTime::from_secs(0))
+            .last_updated_date(DateTime::from_secs(0))
+            .build()
+            .unwrap();
         let error = Template::try_from(output);
         assert!(matches!(error, Err(TranslatorException::ParseTemplate(..))));
         assert_eq!(
@@ -432,53 +374,6 @@ mod test {
         assert_eq!(
             error.err().unwrap().to_string(),
             "Error occurred when parsing the schema",
-        );
-    }
-
-    // Entities Test
-    #[test]
-    fn set_entities_with_empty_entity_type() {
-        let mut entity_map: HashMap<SlotId, EntityUid> = HashMap::new();
-        let identifier = EntityIdentifier::builder()
-            .entity_id(PRINCIPAL_ENTITY_ID)
-            .build();
-
-        let error = update_entity_map(
-            POLICY_ID.to_string(),
-            &mut entity_map,
-            SlotId::principal(),
-            Some(identifier),
-        );
-        assert!(matches!(
-            error,
-            Err(TranslatorException::EntityNameNotFound(..))
-        ));
-        assert_eq!(
-            error.err().unwrap().to_string(),
-            "Entity identifier name is not found.",
-        );
-    }
-
-    #[test]
-    fn set_entities_with_empty_entity_id() {
-        let mut entity_map: HashMap<SlotId, EntityUid> = HashMap::new();
-        let identifier = EntityIdentifier::builder()
-            .entity_type(PRINCIPAL_ENTITY_TYPE)
-            .build();
-
-        let error = update_entity_map(
-            POLICY_ID.to_string(),
-            &mut entity_map,
-            SlotId::principal(),
-            Some(identifier),
-        );
-        assert!(matches!(
-            error,
-            Err(TranslatorException::EntityIdNotFound(..))
-        ));
-        assert_eq!(
-            error.err().unwrap().to_string(),
-            "Entity identifier id is not found.",
         );
     }
 }
