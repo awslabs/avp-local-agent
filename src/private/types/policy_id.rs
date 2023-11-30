@@ -27,8 +27,8 @@ mod test {
 
     #[test]
     fn policy_id_formats_as_expected() {
-        let key = PolicyId("ps-1".to_string());
-        assert_eq!(key.to_string(), "ps-1");
+        let key = PolicyId("p-1".to_string());
+        assert_eq!(key.to_string(), "p-1");
     }
 
     #[test]
@@ -40,23 +40,31 @@ mod test {
     #[test]
     fn policy_id_can_be_inserted_into_map() {
         let mut map: HashMap<PolicyId, i32> = HashMap::new();
-        assert_eq!(map.insert(PolicyId("ps-1".to_string()), 10), None);
-        assert_eq!(map.get(&PolicyId("ps-1".to_string())), Some(&10));
+        assert_eq!(map.insert(PolicyId("p-1".to_string()), 10), None);
+        assert_eq!(map.get(&PolicyId("p-1".to_string())), Some(&10));
     }
 
     #[test]
     fn policy_id_is_cloneable() {
-        let key = PolicyId("ps-1".to_string());
+        let key = PolicyId("p-1".to_string());
         assert_eq!(key.clone(), key);
     }
 
     #[test]
     fn policy_id_equal_to_another_key() {
-        assert_eq!(PolicyId("ps-1".to_string()), PolicyId("ps-1".to_string()));
+        assert_eq!(PolicyId("p-1".to_string()), PolicyId("p-1".to_string()));
     }
 
     #[test]
     fn policy_id_not_equal_to_another_key() {
-        assert_ne!(PolicyId("ps-2".to_string()), PolicyId("ps-1".to_string()));
+        assert_ne!(PolicyId("p-2".to_string()), PolicyId("p-1".to_string()));
+    }
+
+    #[test]
+    fn from_string_to_policy_id() {
+        assert_eq!(
+            PolicyId("p-1".to_string()),
+            PolicyId::from("p-1".to_string())
+        );
     }
 }

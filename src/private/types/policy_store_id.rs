@@ -61,4 +61,12 @@ mod tests {
     fn policy_store_id_is_not_equal_to_another_id_with_different_value() {
         assert!(!PolicyStoreId("id".to_string()).eq(&PolicyStoreId("other".to_string())));
     }
+
+    #[test]
+    fn from_string_to_policy_store_id() {
+        assert_eq!(
+            PolicyStoreId("ps-1".to_string()),
+            PolicyStoreId::from("ps-1".to_string())
+        );
+    }
 }
