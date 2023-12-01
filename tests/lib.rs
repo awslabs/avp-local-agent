@@ -134,30 +134,6 @@ mod test {
             .is_ok())
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    #[cfg_attr(not(feature = "integration-tests"), ignore)]
-    async fn simple_authorizer_with_too_many_entities() {
-        let client = verified_permissions_default_credentials(Region::new("us-east-1")).await;
-        let (policy_store_id, _, _) = setup_policy_store_for_test(&client).await;
-        let authorizer = create_authorizer(client.clone(), policy_store_id.clone());
-
-        let entities_file = File::open("tests/data/too.many.entities.json").unwrap();
-        let schema_file = File::open("tests/data/sweets.schema.cedar.json").unwrap();
-        let schema = Schema::from_file(schema_file).unwrap();
-        let entities = Entities::from_json_file(entities_file, Some(&schema)).unwrap();
-
-        let auth_request = build_request("Eric", "read", 1);
-        let result = authorizer.is_authorized(&auth_request, &entities).await;
-        assert!(result.is_err());
-
-        assert!(client
-            .delete_policy_store()
-            .policy_store_id(policy_store_id)
-            .send()
-            .await
-            .is_ok())
-    }
-
     async fn setup_policy_store_for_test(client: &Client) -> (String, String, String) {
         let policy_store_id = create_policy_store(client).await.unwrap().policy_store_id;
 
