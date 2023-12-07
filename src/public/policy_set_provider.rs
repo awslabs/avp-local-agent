@@ -71,7 +71,7 @@ struct Config {
     pub policy_store_id: PolicyStoreId,
 }
 
-/// `EntityProvider` structure implements the `SimpleEntityProvider` trait.
+/// `PolicySetProvider` structure implements the `SimplePolicySetProvider` trait.
 #[derive(Debug)]
 pub struct PolicySetProvider {
     /// Entities path, stored to allow refreshing from disk.
