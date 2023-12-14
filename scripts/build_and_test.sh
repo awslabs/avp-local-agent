@@ -54,7 +54,7 @@ grcov 'target/private/profraw/' \
 
 echo "Successfully generated coverage report under target/coverage/" && \
 
-# TODO: Need to add the SemVer validation check once the cedar-local-agent is published.
+# Need to add the SemVer validation check once the cedar-local-agent is published.
 
 END_TIME=$(date +%s) && \
 echo "Build Successful in $(($END_TIME - $START_TIME)) seconds"
