@@ -12,35 +12,18 @@
 #
 #  https://doc.rust-lang.org/cargo/reference/workspaces.html
 #
-
 [package]
 name = "avp-local-agent"
 edition = "2021"
-version = "0.1.0"
-
-publish = false
+version = "1.0.0"
+license = "Apache-2.0"
+description = "Amazon Verified Permissions policy and entity providers. These providers are used to build a `cedar-local-agent` simple::Authorizer."
+keywords = ["cedar", "agent", "verified_permissions", "authorization", "security"]
+repository = "https://github.com/awslabs/avp-local-agent"
 
 [dependencies]
-# Utilities
-async-trait = "0.1.71"
-backoff = { version = "0.4.0" , features = ["tokio"] }
-chrono = "0.4.26"
-derive_builder = "0.12.0"
-futures = { version = "0.3.28", features = ["std"] }
-once_cell = "1.18.0"
-serde = { version = "1.0.166", features = ["derive"] }
-serde_json = "1.0.100"
-serde_repr = "0.1.16"
-tokio = { version = "1.0", features = ["full", "signal", "sync", "parking_lot"] }
-uuid = "1.4.1"
-rand = "0.8.5"
-
-### TODO: Updated this before releasing
-cedar-local-agent = { version = "0.1.0", path = "../cedar-local-agent"}
-
-# Error, Logging, Tracing
-thiserror = "1.0.41"
-tracing = "0.1.37"
+# Main definitions for a Cedar-based authorization agent
+cedar-local-agent = "1.0"
 
 # Cedar
 cedar-policy = "2.4.2"
@@ -56,6 +39,24 @@ aws-smithy-async = "1.0.2"
 aws-smithy-http = "0.60.0"
 aws-smithy-runtime-api = "1.0.2"
 aws-types = "1.0.1"
+
+# Error, Logging, Tracing
+thiserror = "1.0.41"
+tracing = "0.1.37"
+
+# Utilities
+async-trait = "0.1.71"
+backoff = { version = "0.4.0" , features = ["tokio"] }
+chrono = "0.4.26"
+derive_builder = "0.12.0"
+futures = { version = "0.3.28", features = ["std"] }
+once_cell = "1.18.0"
+serde = { version = "1.0.166", features = ["derive"] }
+serde_json = "1.0.100"
+serde_repr = "0.1.16"
+tokio = { version = "1.0", features = ["full", "signal", "sync", "parking_lot"] }
+uuid = "1.4.1"
+rand = "0.8.5"
 
 [dev-dependencies]
 # Mocking out aws sdk requests
