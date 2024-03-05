@@ -28,7 +28,11 @@
     rustdoc::bare_urls,
     clippy::doc_markdown
 )]
-#![allow(clippy::must_use_candidate, clippy::missing_const_for_fn)]
+#![allow(
+    clippy::must_use_candidate,
+    clippy::missing_const_for_fn,
+    clippy::blocks_in_conditions
+)]
 
 pub(crate) mod private;
 pub mod public;

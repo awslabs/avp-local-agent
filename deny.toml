@@ -18,8 +18,18 @@ skip = [
     { name = "darling_macro", version = "=0.14.4" }, # old dependency from derive_builder
     { name = "darling_core", version = "=0.14.4" }, # old dependency from derive_builder
     { name = "regex-syntax", version = "<=0.7.5" }, # old transitive dependency from cedar_policy_core
-    { name = "socket2", version = "=0.4.10" }, # old transitive dependency from aws-sdk-verifiedpermissions
+    { name = "itertools", version = "=0.10.5" }, # old transitive dependency from lalrpop and criterion
     { name = "syn", version = "=1.0.109" }, # old dependency from derive_builder
+    { name = "http", version = "=0.2.12" }, # old dependency from aws-config
+    { name = "windows_aarch64_gnullvm", version = "=0.48.5" }, # old dependency from chrono,lalrpop
+    { name = "windows_aarch64_msvc", version = "=0.48.5" }, # old dependency from chrono,lalrpop
+    { name = "windows_i686_msvc", version = "=0.48.5" }, # old dependency from chrono,lalrpop
+    { name = "windows_i686_gnu", version = "=0.48.5" }, # old dependency from chrono,lalrpop
+    { name = "windows-sys", version = "=0.48.0" }, # old dependency from chrono,lalrpop
+    { name = "windows-targets", version = "=0.48.5" }, # old dependency from chrono,lalrpop
+    { name = "windows_x86_64_gnu", version = "=0.48.5" }, # old dependency from chrono,lalrpop
+    { name = "windows_x86_64_gnullvm", version = "=0.48.5" }, # old dependency from chrono,lalrpop
+    { name = "windows_x86_64_msvc", version = "=0.48.5" }, # old dependency from chrono,lalrpop
 ]
 skip-tree = []
 
