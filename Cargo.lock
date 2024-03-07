@@ -580,9 +580,9 @@ checksum = "a0ba8f7aaa012f30d5b2861462f6708eccd49c3c39863fe083a308035f63d723"
 
 [[package]]
 name = "cedar-local-agent"
-version = "1.0.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fe95f7ab85023da8407eb3f77bb0881370236ad18854ba6d2c88b01252d1826"
+checksum = "388ef2f2da5fea514c2831eaa0740a69ca24a2beda54cc242d2a3c6942f3b78d"
 dependencies = [
  "async-trait",
  "cedar-policy",
@@ -609,34 +609,37 @@ dependencies = [
 
 [[package]]
 name = "cedar-policy"
-version = "2.4.3"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31ff2003d0aba0a4b2e5212660321d63dc7c36efe636d6ca1882d489cbc0bef8"
+checksum = "3a88b762db171bf7f0097671133af16894f8f82fc02f6e1c033f621578ad530e"
 dependencies = [
  "cedar-policy-core",
  "cedar-policy-validator",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lalrpop-util",
+ "miette",
+ "nonempty",
  "ref-cast",
  "serde",
  "serde_json",
+ "serde_with",
  "smol_str",
  "thiserror",
 ]
 
 [[package]]
 name = "cedar-policy-core"
-version = "2.4.3"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c52f9666c7cb1b6f14a6e77d3ffcffa20fd3e1012ac8dcc393498c33ff632c3"
+checksum = "2c991ac9e5bbe05edea2c7acc0aa6a0e70af9b61a59754ce82eed8135e1acd6f"
 dependencies = [
  "either",
- "ipnet",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lalrpop",
  "lalrpop-util",
  "lazy_static",
  "miette",
+ "nonempty",
  "regex",
  "rustc_lexer",
  "serde",
@@ -649,12 +652,12 @@ dependencies = [
 
 [[package]]
 name = "cedar-policy-formatter"
-version = "2.4.3"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4e21b8be90805359ec02d3ff0e954e5f5f40115c998e2426737d54ea42ee6c5"
+checksum = "9ce8e9292501b4302f70aef2d6bbcc640b1f33fa9c06934cb1fb971a74de7a15"
 dependencies = [
  "cedar-policy-core",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "logos",
  "miette",
  "pretty",
@@ -664,12 +667,17 @@ dependencies = [
 
 [[package]]
 name = "cedar-policy-validator"
-version = "2.4.3"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76a63c1a72bcafda800830cbdde316162074b341b7d59bd4b1cea6156f22dfa7"
+checksum = "098dde67537617fa1ec3d2289fb66bfcd73f95907d84c628cc4b6db2e642dbcc"
 dependencies = [
  "cedar-policy-core",
- "itertools 0.10.5",
+ "itertools 0.12.1",
+ "lalrpop",
+ "lalrpop-util",
+ "lazy_static",
+ "miette",
+ "nonempty",
  "serde",
  "serde_json",
  "serde_with",
@@ -1287,25 +1295,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "ipnet"
-version = "2.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f518f335dce6725a761382244631d86cf0ccb2863413590b31338feb467f9c3"
-
-[[package]]
 name = "itertools"
-version = "0.10.5"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
 dependencies = [
  "either",
 ]
 
 [[package]]
 name = "itertools"
-version = "0.11.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
 dependencies = [
  "either",
 ]
@@ -1441,6 +1443,7 @@ checksum = "59bb584eaeeab6bd0226ccf3509a69d7936d148cf3d036ad350abe35e8c6856e"
 dependencies = [
  "miette-derive",
  "once_cell",
+ "serde",
  "thiserror",
  "unicode-width",
 ]
@@ -1481,6 +1484,12 @@ name = "new_debug_unreachable"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
+
+[[package]]
+name = "nonempty"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "995defdca0a589acfdd1bd2e8e3b896b4d4f7675a31fd14c32611440c7f608e6"
 
 [[package]]
 name = "nu-ansi-term"

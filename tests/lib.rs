@@ -10,6 +10,7 @@ mod test {
     use aws_sdk_verifiedpermissions::Client;
     use std::fs::File;
     use std::sync::Arc;
+    use std::time::Duration;
 
     use aws_sdk_verifiedpermissions::types::{
         EntityIdentifier, PolicyDefinition, StaticPolicyDefinition, TemplateLinkedPolicyDefinition,
@@ -58,7 +59,9 @@ mod test {
             Some(format!("Action::\"{action}\"").parse().unwrap()),
             Some(format!("Box::\"{resource}\"").parse().unwrap()),
             Context::empty(),
+            None,
         )
+        .unwrap()
     }
 
     fn requests() -> Vec<(Request, Decision)> {
@@ -273,6 +276,10 @@ mod test {
     ) -> Result<CreatePolicyStoreOutput, CreatePolicyStoreError> {
         let backoff_strategy = ExponentialBackoff::default();
         let create_policy_store_op = || async {
+            if backoff_strategy.get_elapsed_time() >= Duration::from_secs(15) {
+                panic!("\nError contacting AVP! Try refreshing your token?\n");
+            }
+
             let result = client
                 .create_policy_store()
                 .validation_settings(
@@ -286,6 +293,6 @@ mod test {
                 .map_err(SdkError::into_service_error)?;
             Ok(result)
         };
-        backoff::future::retry(backoff_strategy, create_policy_store_op).await
+        backoff::future::retry(backoff_strategy.clone(), create_policy_store_op).await
     }
 }
