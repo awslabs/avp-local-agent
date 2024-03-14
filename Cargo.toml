@@ -23,13 +23,13 @@ repository = "https://github.com/awslabs/avp-local-agent"
 
 [dependencies]
 # Main definitions for a Cedar-based authorization agent
-cedar-local-agent = "1.0"
+cedar-local-agent = "=2.0.0"
 
 # Cedar
-cedar-policy = "2.4.2"
-cedar-policy-core = "2.4.2"
-cedar-policy-formatter = "2.4.2"
-cedar-policy-validator = "2.4.2"
+cedar-policy = "3.1.0"
+cedar-policy-core = "3.1.0"
+cedar-policy-formatter = "3.1.0"
+cedar-policy-validator = "3.1.0"
 
 # AWS
 aws-config = "1.0.1"
