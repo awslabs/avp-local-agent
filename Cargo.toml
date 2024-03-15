@@ -15,7 +15,7 @@
 [package]
 name = "avp-local-agent"
 edition = "2021"
-version = "1.0.0"
+version = "2.0.0"
 license = "Apache-2.0"
 description = "Amazon Verified Permissions policy and entity providers. These providers are used to build a `cedar-local-agent` simple::Authorizer."
 keywords = ["cedar", "agent", "verified_permissions", "authorization", "security"]

@@ -25,10 +25,7 @@ Add `avp-local-agent` as a dependency in your `Cargo.toml` file. For example:
 
 ```
 [dependencies]
-aws-types = "1.0"
-aws-config = "1.0"
-aws-credential-types = "1.0"
-avp-local-agent = "1.0"
+avp-local-agent = "2"
 ```
 
 Note: AWS dependencies required for specifying the region and optionally building
