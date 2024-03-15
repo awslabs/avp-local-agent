@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cedar-local-agent = "=1.0.0"
+cedar-local-agent = "2"
 # When creating a new release, update the branch here
-avp-local-agent = { git = "https://github.com/awslabs/avp-local-agent.git", branch = "release/1.0.0" }
+avp-local-agent = { path="../.." }
 aws-config = "1.1.7"
 aws-sdk-verifiedpermissions = "1.16.0"
-cedar-policy = "2.4.3"
+cedar-policy = "3.1.0"
 tokio = "1.36.0"
