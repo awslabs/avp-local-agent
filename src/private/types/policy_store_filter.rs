@@ -2,7 +2,7 @@ use aws_sdk_verifiedpermissions::{
     error::BuildError,
     types::{EntityIdentifier, EntityReference, PolicyFilter, PolicyType},
 };
-use input::{EntityInput, PolicyStoreFiltersInput};
+use input::{Entity, PolicyStoreFiltersInput};
 use serde_json::Value;
 /// Structures necessary to represent PolicyFilter as part of a
 /// policy source ID (i.e. PolicyStoreId)
@@ -28,12 +28,12 @@ enum EntityValueType {
 }
 
 /// Translate the parsed input into the type we use throughout
-impl TryFrom<EntityInput> for EntityValueType {
+impl TryFrom<Entity> for EntityValueType {
     type Error = PolicyFilterInputError;
-    fn try_from(value: EntityInput) -> Result<Self, Self::Error> {
+    fn try_from(value: Entity) -> Result<Self, Self::Error> {
         Ok(match value {
-            EntityInput::Unspecified(b) => Self::Unspecified(EntityReference::Unspecified(b)),
-            EntityInput::Identifier {
+            Entity::Unspecified(b) => Self::Unspecified(EntityReference::Unspecified(b)),
+            Entity::Identifier {
                 entity_type,
                 entity_id,
             } => Self::Entity(EntityReference::Identifier(
@@ -69,8 +69,8 @@ impl Eq for EntityValueType {}
 impl Hash for EntityValueType {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
-            EntityValueType::Unspecified(b) => b.as_unspecified().unwrap().hash(state), // safe unwrap because of new-typing
-            EntityValueType::Entity(e) => {
+            Self::Unspecified(b) => b.as_unspecified().unwrap().hash(state), // safe unwrap because of new-typing
+            Self::Entity(e) => {
                 let e = e.as_identifier().unwrap(); // safe unwrap because of new-typing
                 e.entity_type.hash(state);
                 e.entity_id.hash(state);
@@ -116,8 +116,8 @@ impl PolicyStoreFilters {
 impl From<&PolicyStoreFilters> for PolicyFilter {
     fn from(value: &PolicyStoreFilters) -> Self {
         Self::builder()
-            .set_policy_template_id(value.policy_template_id.as_ref().cloned())
-            .set_policy_type(value.policy_type.as_ref().cloned())
+            .set_policy_template_id(value.policy_template_id.clone())
+            .set_policy_type(value.policy_type.clone())
             .set_principal(value.principal.as_ref().map(EntityReference::from))
             .set_resource(value.resource.as_ref().map(EntityReference::from))
             .build()
@@ -146,12 +146,10 @@ impl TryFrom<PolicyStoreFiltersInput> for PolicyStoreFilters {
         Ok(Self {
             principal: value
                 .principal
-                .map(|v| EntityValueType::try_from(v).map(Some))
-                .unwrap_or(Ok(None))?,
+                .map_or(Ok(None), |v| EntityValueType::try_from(v).map(Some))?,
             resource: value
                 .resource
-                .map(|v| EntityValueType::try_from(v).map(Some))
-                .unwrap_or(Ok(None))?,
+                .map_or(Ok(None), |v| EntityValueType::try_from(v).map(Some))?,
             policy_type: value.policy_type.map(|v| match v {
                 input::PolicyTypeInput::Static => PolicyType::Static,
                 input::PolicyTypeInput::TemplateLinked => PolicyType::TemplateLinked,
@@ -168,13 +166,13 @@ impl TryFrom<PolicyStoreFiltersInput> for PolicyStoreFilters {
 /// Two implementations are supported - serde, and
 /// "CLI shorthand" via a custom parser
 mod input {
-    use crate::private::types::cli_shorthand::{self, CliShorthandValue};
+    use crate::private::types::cli_shorthand::{self, Value};
     use serde::Deserialize;
     use std::str::FromStr;
 
     #[derive(Deserialize)]
     #[serde(rename_all = "camelCase")]
-    pub enum EntityInput {
+    pub enum Entity {
         Unspecified(bool),
         #[serde(rename_all = "camelCase")]
         Identifier {
@@ -184,23 +182,23 @@ mod input {
     }
 
     /// Transform parsed CLI shorthand input for an EntityInput value
-    impl<'a> TryFrom<CliShorthandValue<'a>> for EntityInput {
+    impl<'a> TryFrom<Value<'a>> for Entity {
         type Error = super::PolicyFilterInputError;
 
-        fn try_from(value: CliShorthandValue<'a>) -> Result<Self, Self::Error> {
-            if let CliShorthandValue::Struct(c) = value {
+        fn try_from(value: Value<'a>) -> Result<Self, Self::Error> {
+            if let Value::Struct(c) = value {
                 if let [(k, v)] = c.as_slice() {
                     match (*k, v) {
-                        ("unspecified", CliShorthandValue::SimpleValue(b)) => {
-                            Ok(EntityInput::Unspecified(*b == "true"))
+                        ("unspecified", Value::Simple(b)) => {
+                            Ok(Self::Unspecified(*b == "true"))
                         }
-                        ("identifier", CliShorthandValue::Struct(v)) if v.len() == 2 => {
+                        ("identifier", Value::Struct(v)) if v.len() == 2 => {
                             match v.as_slice() {
-                                [("entityType", CliShorthandValue::SimpleValue(t)), ("entityId", CliShorthandValue::SimpleValue(i))]
-                                | [("entityId", CliShorthandValue::SimpleValue(i)), ("entityType", CliShorthandValue::SimpleValue(t))] => {
-                                    Ok(EntityInput::Identifier {
-                                        entity_type: t.to_string(),
-                                        entity_id: i.to_string(),
+                                [("entityType", Value::Simple(t)), ("entityId", Value::Simple(i))]
+                                | [("entityId", Value::Simple(i)), ("entityType", Value::Simple(t))] => {
+                                    Ok(Self::Identifier {
+                                        entity_type: (*t).to_string(),
+                                        entity_id: (*i).to_string(),
                                     })
                                 }
                                 _ => Err(super::PolicyFilterInputError::ShorthandContentError(
@@ -209,7 +207,7 @@ mod input {
                             }
                         }
                         _ => Err(super::PolicyFilterInputError::ShorthandContentError(
-                            format!("unrecognized type for Entity reference: {}", k),
+                            format!("unrecognized type for Entity reference: {k}"),
                         )),
                     }
                 } else {
@@ -234,10 +232,10 @@ mod input {
     }
 
     // PolicyTypeInput From CLI shorthand input
-    impl<'a> TryFrom<CliShorthandValue<'a>> for PolicyTypeInput {
+    impl<'a> TryFrom<Value<'a>> for PolicyTypeInput {
         type Error = super::PolicyFilterInputError;
 
-        fn try_from(value: CliShorthandValue<'a>) -> Result<Self, Self::Error> {
+        fn try_from(value: Value<'a>) -> Result<Self, Self::Error> {
             match value.to_string().as_deref() {
                 Some("STATIC") => Ok(Self::Static),
                 Some("TEMPLATE_LINKED") => Ok(Self::TemplateLinked),
@@ -249,10 +247,10 @@ mod input {
     }
 
     // String From CLI shorthand input
-    impl<'a> TryFrom<CliShorthandValue<'a>> for String {
+    impl<'a> TryFrom<Value<'a>> for String {
         type Error = super::PolicyFilterInputError;
 
-        fn try_from(value: CliShorthandValue<'a>) -> Result<Self, Self::Error> {
+        fn try_from(value: Value<'a>) -> Result<Self, Self::Error> {
             value
                 .to_string()
                 .ok_or(super::PolicyFilterInputError::ShorthandContentError(
@@ -265,9 +263,9 @@ mod input {
     #[serde(rename_all = "camelCase")]
     pub(super) struct PolicyStoreFiltersInput {
         #[serde(default)]
-        pub(super) principal: Option<EntityInput>,
+        pub(super) principal: Option<Entity>,
         #[serde(default)]
-        pub(super) resource: Option<EntityInput>,
+        pub(super) resource: Option<Entity>,
         #[serde(default)]
         pub(super) policy_type: Option<PolicyTypeInput>,
         #[serde(default)]
@@ -286,8 +284,8 @@ mod input {
             let parsed = cli_shorthand::from_cli_string(s)
                 .map_err(|e| super::PolicyFilterInputError::ShorthandParseError(e.to_string()))?;
 
-            let mut principal: Option<EntityInput> = None;
-            let mut resource: Option<EntityInput> = None;
+            let mut principal: Option<Entity> = None;
+            let mut resource: Option<Entity> = None;
             let mut policy_type: Option<PolicyTypeInput> = None;
             let mut policy_template_id: Option<String> = None;
 
@@ -299,13 +297,13 @@ mod input {
                     "policyTemplateId" => policy_template_id = Some(v.try_into()?),
                     _ => {
                         return Err(super::PolicyFilterInputError::ShorthandContentError(
-                            format!("unrecognized field for policy filter: {}", k),
+                            format!("unrecognized field for policy filter: {k}"),
                         ))
                     }
                 }
             }
 
-            Ok(PolicyStoreFiltersInput {
+            Ok(Self {
                 principal,
                 resource,
                 policy_type,
@@ -351,10 +349,10 @@ mod input {
                 PolicyTypeInput::Static
             );
             assert!(
-                matches!(p.principal, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "User" && entity_id == "nobody")
+                matches!(p.principal, Some(Entity::Identifier {entity_type, entity_id}) if entity_type == "User" && entity_id == "nobody")
             );
             assert!(
-                matches!(p.resource, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "Path" && entity_id == "/one/two/three")
+                matches!(p.resource, Some(Entity::Identifier {entity_type, entity_id}) if entity_type == "Path" && entity_id == "/one/two/three")
             );
         }
         #[test]
@@ -381,8 +379,8 @@ mod input {
                 p.policy_type.expect("Policy type should be set"),
                 PolicyTypeInput::TemplateLinked
             );
-            assert!(matches!(p.principal, Some(EntityInput::Unspecified(true))));
-            assert!(matches!(p.resource, Some(EntityInput::Unspecified(false))));
+            assert!(matches!(p.principal, Some(Entity::Unspecified(true))));
+            assert!(matches!(p.resource, Some(Entity::Unspecified(false))));
         }
         #[test]
         fn json_none() {
@@ -423,10 +421,10 @@ mod input {
                 PolicyTypeInput::Static
             );
             assert!(
-                matches!(p.principal, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "User" && entity_id == "nobody")
+                matches!(p.principal, Some(Entity::Identifier {entity_type, entity_id}) if entity_type == "User" && entity_id == "nobody")
             );
             assert!(
-                matches!(p.resource, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "Path" && entity_id == "/one/two/three")
+                matches!(p.resource, Some(Entity::Identifier {entity_type, entity_id}) if entity_type == "Path" && entity_id == "/one/two/three")
             );
         }
 
@@ -452,8 +450,8 @@ mod input {
                 p.policy_type.expect("Policy type should be set"),
                 PolicyTypeInput::TemplateLinked
             );
-            assert!(matches!(p.principal, Some(EntityInput::Unspecified(true))));
-            assert!(matches!(p.resource, Some(EntityInput::Unspecified(false))));
+            assert!(matches!(p.principal, Some(Entity::Unspecified(true))));
+            assert!(matches!(p.resource, Some(Entity::Unspecified(false))));
         }
 
         #[test]
