@@ -1,24 +1,30 @@
-/// Structures necessary to represent PolicyFilter as part of a 
+use aws_sdk_verifiedpermissions::{
+    error::BuildError,
+    types::{EntityIdentifier, EntityReference, PolicyFilter, PolicyType},
+};
+use input::{EntityInput, PolicyStoreFiltersInput};
+use serde_json::Value;
+/// Structures necessary to represent PolicyFilter as part of a
 /// policy source ID (i.e. PolicyStoreId)
-/// 
+///
 /// We can't use the native SDK representations because they are non-exhaustive
 /// and so can't implement Hash or Eq (required for things that are keys).
-/// 
+///
 /// Instead, then, we use our own private representations while closely mapping
 /// to the SDK versions so that, at the time of SDK invocations we can easily
 /// produce the right structures.
-/// 
-use std::{hash::{Hash, Hasher}, str::FromStr};
-use aws_sdk_verifiedpermissions::{error::BuildError, types::{EntityIdentifier, EntityReference, PolicyFilter, PolicyType}};
-use input::{EntityInput, PolicyStoreFiltersInput};
-use serde_json::Value;
+///
+use std::{
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
 use thiserror::Error;
 
 /// EntityReference constrained to be Unspecified or EntityIdentifier
 #[derive(Debug, Clone, PartialEq)]
 enum EntityValueType {
     Unspecified(EntityReference),
-    Entity(EntityReference)
+    Entity(EntityReference),
 }
 
 /// Translate the parsed input into the type we use throughout
@@ -27,12 +33,18 @@ impl TryFrom<EntityInput> for EntityValueType {
     fn try_from(value: EntityInput) -> Result<Self, Self::Error> {
         Ok(match value {
             EntityInput::Unspecified(b) => Self::Unspecified(EntityReference::Unspecified(b)),
-            EntityInput::Identifier { entity_type, entity_id } => 
-                Self::Entity(EntityReference::Identifier(EntityIdentifier::builder()
+            EntityInput::Identifier {
+                entity_type,
+                entity_id,
+            } => Self::Entity(EntityReference::Identifier(
+                EntityIdentifier::builder()
                     .entity_id(&entity_id)
                     .entity_type(&entity_type)
                     .build()
-                    .map_err(|e| PolicyFilterInputError::InvalidEntityReference(entity_type, entity_id,e))?))
+                    .map_err(|e| {
+                        PolicyFilterInputError::InvalidEntityReference(entity_type, entity_id, e)
+                    })?,
+            )),
         })
     }
 }
@@ -55,16 +67,16 @@ impl Eq for EntityValueType {}
 
 /// Hash because EntityValueType is needed for Map keys
 impl Hash for EntityValueType {
-	fn hash<H: Hasher>(&self, state: &mut H) {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
             EntityValueType::Unspecified(b) => b.as_unspecified().unwrap().hash(state), // safe unwrap because of new-typing
             EntityValueType::Entity(e) => {
                 let e = e.as_identifier().unwrap(); // safe unwrap because of new-typing
-        		e.entity_type.hash(state);
-		        e.entity_id.hash(state);
+                e.entity_type.hash(state);
+                e.entity_id.hash(state);
             }
         }
-	}
+    }
 }
 
 ///
@@ -82,11 +94,15 @@ pub struct PolicyStoreFilters {
 impl PolicyStoreFilters {
     /// Construct from a JSON Value
     pub fn from_json_value(json: Value) -> Result<Self, PolicyFilterInputError> {
-        serde_json::from_value::<PolicyStoreFiltersInput>(json).map_err(PolicyFilterInputError::JsonDeserializationError).and_then(Self::try_from)
+        serde_json::from_value::<PolicyStoreFiltersInput>(json)
+            .map_err(PolicyFilterInputError::JsonDeserializationError)
+            .and_then(Self::try_from)
     }
     /// Construct from a JSON string
     pub fn from_json_str(json: &str) -> Result<Self, PolicyFilterInputError> {
-        serde_json::from_str::<PolicyStoreFiltersInput>(json).map_err(PolicyFilterInputError::JsonDeserializationError).and_then(Self::try_from)
+        serde_json::from_str::<PolicyStoreFiltersInput>(json)
+            .map_err(PolicyFilterInputError::JsonDeserializationError)
+            .and_then(Self::try_from)
     }
     /// Construct from a CLI shorthand string
     pub fn from_cli_str(s: &str) -> Result<Self, PolicyFilterInputError> {
@@ -98,14 +114,14 @@ impl PolicyStoreFilters {
 /// Get an SDK PolicyFilter from our representation
 ///
 impl From<&PolicyStoreFilters> for PolicyFilter {
-	fn from(value: &PolicyStoreFilters) -> Self {
-		Self::builder()
-			.set_policy_template_id(value.policy_template_id.as_ref().cloned())
-			.set_policy_type(value.policy_type.as_ref().cloned())
-			.set_principal(value.principal.as_ref().map(EntityReference::from))
-			.set_resource(value.resource.as_ref().map(EntityReference::from))
-			.build()
-	}
+    fn from(value: &PolicyStoreFilters) -> Self {
+        Self::builder()
+            .set_policy_template_id(value.policy_template_id.as_ref().cloned())
+            .set_policy_type(value.policy_type.as_ref().cloned())
+            .set_principal(value.principal.as_ref().map(EntityReference::from))
+            .set_resource(value.resource.as_ref().map(EntityReference::from))
+            .build()
+    }
 }
 
 #[derive(Error, Debug)]
@@ -122,19 +138,23 @@ pub enum PolicyFilterInputError {
 
 ///
 /// Convert the parsed version into a real version
-/// 
+///
 impl TryFrom<PolicyStoreFiltersInput> for PolicyStoreFilters {
     type Error = PolicyFilterInputError;
 
     fn try_from(value: PolicyStoreFiltersInput) -> Result<Self, Self::Error> {
         Ok(Self {
-            principal: value.principal.map(|v| EntityValueType::try_from(v).map(Some)).unwrap_or(Ok(None))?,
-            resource:  value.resource.map(|v| EntityValueType::try_from(v).map(Some)).unwrap_or(Ok(None))?,
-            policy_type: value.policy_type .map(|v| {
-                match v {
-                    input::PolicyTypeInput::Static => PolicyType::Static,
-                    input::PolicyTypeInput::TemplateLinked => PolicyType::TemplateLinked,
-                }
+            principal: value
+                .principal
+                .map(|v| EntityValueType::try_from(v).map(Some))
+                .unwrap_or(Ok(None))?,
+            resource: value
+                .resource
+                .map(|v| EntityValueType::try_from(v).map(Some))
+                .unwrap_or(Ok(None))?,
+            policy_type: value.policy_type.map(|v| match v {
+                input::PolicyTypeInput::Static => PolicyType::Static,
+                input::PolicyTypeInput::TemplateLinked => PolicyType::TemplateLinked,
             }),
             policy_template_id: value.policy_template_id,
         })
@@ -144,13 +164,13 @@ impl TryFrom<PolicyStoreFiltersInput> for PolicyStoreFilters {
 ///
 /// The goal is to present to the user a simple and familiar syntax that allows
 /// for simple declaration of filtering intent.
-/// 
+///
 /// Two implementations are supported - serde, and
 /// "CLI shorthand" via a custom parser
 mod input {
-    use std::str::FromStr;
-    use serde::Deserialize;
     use crate::private::types::cli_shorthand::{self, CliShorthandValue};
+    use serde::Deserialize;
+    use std::str::FromStr;
 
     #[derive(Deserialize)]
     #[serde(rename_all = "camelCase")]
@@ -159,55 +179,71 @@ mod input {
         #[serde(rename_all = "camelCase")]
         Identifier {
             entity_type: String,
-            entity_id: String
-        }
+            entity_id: String,
+        },
     }
 
     /// Transform parsed CLI shorthand input for an EntityInput value
     impl<'a> TryFrom<CliShorthandValue<'a>> for EntityInput {
         type Error = super::PolicyFilterInputError;
-        
+
         fn try_from(value: CliShorthandValue<'a>) -> Result<Self, Self::Error> {
             if let CliShorthandValue::Struct(c) = value {
                 if let [(k, v)] = c.as_slice() {
-                    match (*k,v) {
-                        ("unspecified", CliShorthandValue::SimpleValue(b)) => Ok(EntityInput::Unspecified(*b == "true")),
-                        ("identifier", CliShorthandValue::Struct(v))  if v.len() == 2 => {
+                    match (*k, v) {
+                        ("unspecified", CliShorthandValue::SimpleValue(b)) => {
+                            Ok(EntityInput::Unspecified(*b == "true"))
+                        }
+                        ("identifier", CliShorthandValue::Struct(v)) if v.len() == 2 => {
                             match v.as_slice() {
-                                [("entityType",CliShorthandValue::SimpleValue(t)),("entityId",CliShorthandValue::SimpleValue(i))] | 
-                                [("entityId",CliShorthandValue::SimpleValue(i)),("entityType",CliShorthandValue::SimpleValue(t))] => 
-                                    Ok(EntityInput::Identifier{entity_type: t.to_string(), entity_id: i.to_string()}),
-                                _ => Err(super::PolicyFilterInputError::ShorthandContentError("unrecognized field or value for Entity identifier".into()))
+                                [("entityType", CliShorthandValue::SimpleValue(t)), ("entityId", CliShorthandValue::SimpleValue(i))]
+                                | [("entityId", CliShorthandValue::SimpleValue(i)), ("entityType", CliShorthandValue::SimpleValue(t))] => {
+                                    Ok(EntityInput::Identifier {
+                                        entity_type: t.to_string(),
+                                        entity_id: i.to_string(),
+                                    })
+                                }
+                                _ => Err(super::PolicyFilterInputError::ShorthandContentError(
+                                    "unrecognized field or value for Entity identifier".into(),
+                                )),
                             }
                         }
-                        _ => Err(super::PolicyFilterInputError::ShorthandContentError(format!("unrecognized type for Entity reference: {}",k)))
+                        _ => Err(super::PolicyFilterInputError::ShorthandContentError(
+                            format!("unrecognized type for Entity reference: {}", k),
+                        )),
                     }
                 } else {
-                    Err(super::PolicyFilterInputError::ShorthandContentError("invalid content for Entity reference".into()))
+                    Err(super::PolicyFilterInputError::ShorthandContentError(
+                        "invalid content for Entity reference".into(),
+                    ))
                 }
             } else {
-                Err(super::PolicyFilterInputError::ShorthandContentError("invalid value type for Entity reference".into()))
+                Err(super::PolicyFilterInputError::ShorthandContentError(
+                    "invalid value type for Entity reference".into(),
+                ))
             }
         }
     }
 
-    #[derive(Deserialize,Debug)]
+    #[derive(Deserialize, Debug)]
     #[cfg_attr(test, derive(PartialEq))]
     #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
     pub(super) enum PolicyTypeInput {
         Static,
-        TemplateLinked
+        TemplateLinked,
     }
 
     // PolicyTypeInput From CLI shorthand input
     impl<'a> TryFrom<CliShorthandValue<'a>> for PolicyTypeInput {
         type Error = super::PolicyFilterInputError;
-    
+
         fn try_from(value: CliShorthandValue<'a>) -> Result<Self, Self::Error> {
             match value.to_string().as_deref() {
                 Some("STATIC") => Ok(Self::Static),
                 Some("TEMPLATE_LINKED") => Ok(Self::TemplateLinked),
-                _ => Err(super::PolicyFilterInputError::ShorthandContentError("Invalid value for Policy type".into()))
+                _ => Err(super::PolicyFilterInputError::ShorthandContentError(
+                    "Invalid value for Policy type".into(),
+                )),
             }
         }
     }
@@ -215,13 +251,17 @@ mod input {
     // String From CLI shorthand input
     impl<'a> TryFrom<CliShorthandValue<'a>> for String {
         type Error = super::PolicyFilterInputError;
-    
+
         fn try_from(value: CliShorthandValue<'a>) -> Result<Self, Self::Error> {
-            value.to_string().ok_or(super::PolicyFilterInputError::ShorthandContentError("not a string".into()))
+            value
+                .to_string()
+                .ok_or(super::PolicyFilterInputError::ShorthandContentError(
+                    "not a string".into(),
+                ))
         }
     }
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize,Default)]
     #[serde(rename_all = "camelCase")]
     pub(super) struct PolicyStoreFiltersInput {
         #[serde(default)]
@@ -231,7 +271,7 @@ mod input {
         #[serde(default)]
         pub(super) policy_type: Option<PolicyTypeInput>,
         #[serde(default)]
-        pub(super) policy_template_id: Option<String>,    
+        pub(super) policy_template_id: Option<String>,
     }
 
     impl FromStr for PolicyStoreFiltersInput {
@@ -239,20 +279,29 @@ mod input {
 
         /// PolicyStoreFiltersInput from CLI shorthand input
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            let parsed = cli_shorthand::from_cli_string(s).map_err(|e| super::PolicyFilterInputError::ShorthandParseError(e.to_string()))?;
+            let s = s.trim_ascii();
+            if s.is_empty() {
+                return Ok(Self::default());
+            }
+            let parsed = cli_shorthand::from_cli_string(s)
+                .map_err(|e| super::PolicyFilterInputError::ShorthandParseError(e.to_string()))?;
 
             let mut principal: Option<EntityInput> = None;
             let mut resource: Option<EntityInput> = None;
             let mut policy_type: Option<PolicyTypeInput> = None;
             let mut policy_template_id: Option<String> = None;
-    
-            for (k,v) in parsed {
+
+            for (k, v) in parsed {
                 match k {
                     "principal" => principal = Some(v.try_into()?),
                     "resource" => resource = Some(v.try_into()?),
                     "policyType" => policy_type = Some(v.try_into()?),
                     "policyTemplateId" => policy_template_id = Some(v.try_into()?),
-                    _  => {return Err(super::PolicyFilterInputError::ShorthandContentError(format!("unrecognized field for policy filter: {}", k)))}
+                    _ => {
+                        return Err(super::PolicyFilterInputError::ShorthandContentError(
+                            format!("unrecognized field for policy filter: {}", k),
+                        ))
+                    }
                 }
             }
 
@@ -264,7 +313,6 @@ mod input {
             })
         }
     }
-
 
     #[cfg(test)]
     mod tests {
@@ -292,11 +340,22 @@ mod input {
                     "policyTemplateId": "my-template-id"
                   }
             );
-            let p: PolicyStoreFiltersInput = serde_json::from_value(json).expect("Unable to parse intended format");
-            assert_eq!(p.policy_template_id.expect("Template ID should be set"), "my-template-id");
-            assert_eq!(p.policy_type.expect("Policy type should be set"), PolicyTypeInput::Static);
-            assert!(matches!(p.principal, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "User" && entity_id == "nobody"));
-            assert!(matches!(p.resource, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "Path" && entity_id == "/one/two/three"));
+            let p: PolicyStoreFiltersInput =
+                serde_json::from_value(json).expect("Unable to parse intended format");
+            assert_eq!(
+                p.policy_template_id.expect("Template ID should be set"),
+                "my-template-id"
+            );
+            assert_eq!(
+                p.policy_type.expect("Policy type should be set"),
+                PolicyTypeInput::Static
+            );
+            assert!(
+                matches!(p.principal, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "User" && entity_id == "nobody")
+            );
+            assert!(
+                matches!(p.resource, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "Path" && entity_id == "/one/two/three")
+            );
         }
         #[test]
         fn json_all_with_unspecified() {
@@ -312,17 +371,27 @@ mod input {
                     "policyTemplateId": "my-template-id"
                   }
             );
-            let p: PolicyStoreFiltersInput = serde_json::from_value(json).expect("Unable to parse intended format");
-            assert_eq!(p.policy_template_id.expect("Template ID should be set"), "my-template-id");
-            assert_eq!(p.policy_type.expect("Policy type should be set"), PolicyTypeInput::TemplateLinked);
+            let p: PolicyStoreFiltersInput =
+                serde_json::from_value(json).expect("Unable to parse intended format");
+            assert_eq!(
+                p.policy_template_id.expect("Template ID should be set"),
+                "my-template-id"
+            );
+            assert_eq!(
+                p.policy_type.expect("Policy type should be set"),
+                PolicyTypeInput::TemplateLinked
+            );
             assert!(matches!(p.principal, Some(EntityInput::Unspecified(true))));
             assert!(matches!(p.resource, Some(EntityInput::Unspecified(false))));
         }
         #[test]
         fn json_none() {
             let json = json!({});
-            let p: PolicyStoreFiltersInput = serde_json::from_value(json).expect("Unable to parse intended format");
-            assert!(matches!(p, PolicyStoreFiltersInput{principal:a,resource:b,policy_type:c,policy_template_id:d} if a.is_none() && b.is_none() && c.is_none() && d.is_none()));
+            let p: PolicyStoreFiltersInput =
+                serde_json::from_value(json).expect("Unable to parse intended format");
+            assert!(
+                matches!(p, PolicyStoreFiltersInput{principal:a,resource:b,policy_type:c,policy_template_id:d} if a.is_none() && b.is_none() && c.is_none() && d.is_none())
+            );
         }
 
         #[test]
@@ -343,11 +412,22 @@ mod input {
                 policyType = STATIC,
                 policyTemplateId = my-template-id
             )"#;
-            let p  = PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
-            assert_eq!(p.policy_template_id.expect("Template ID should be set"), "my-template-id");
-            assert_eq!(p.policy_type.expect("Policy type should be set"), PolicyTypeInput::Static);
-            assert!(matches!(p.principal, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "User" && entity_id == "nobody"));
-            assert!(matches!(p.resource, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "Path" && entity_id == "/one/two/three"));
+            let p =
+                PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
+            assert_eq!(
+                p.policy_template_id.expect("Template ID should be set"),
+                "my-template-id"
+            );
+            assert_eq!(
+                p.policy_type.expect("Policy type should be set"),
+                PolicyTypeInput::Static
+            );
+            assert!(
+                matches!(p.principal, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "User" && entity_id == "nobody")
+            );
+            assert!(
+                matches!(p.resource, Some(EntityInput::Identifier {entity_type, entity_id}) if entity_type == "Path" && entity_id == "/one/two/three")
+            );
         }
 
         #[test]
@@ -362,9 +442,16 @@ mod input {
                 policyType = TEMPLATE_LINKED,
                 policyTemplateId = my-template-id
             "#;
-            let p: PolicyStoreFiltersInput = PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
-            assert_eq!(p.policy_template_id.expect("Template ID should be set"), "my-template-id");
-            assert_eq!(p.policy_type.expect("Policy type should be set"), PolicyTypeInput::TemplateLinked);
+            let p: PolicyStoreFiltersInput =
+                PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
+            assert_eq!(
+                p.policy_template_id.expect("Template ID should be set"),
+                "my-template-id"
+            );
+            assert_eq!(
+                p.policy_type.expect("Policy type should be set"),
+                PolicyTypeInput::TemplateLinked
+            );
             assert!(matches!(p.principal, Some(EntityInput::Unspecified(true))));
             assert!(matches!(p.resource, Some(EntityInput::Unspecified(false))));
         }
@@ -372,10 +459,11 @@ mod input {
         #[test]
         fn cli_none() {
             let cli = "";
-            let p: PolicyStoreFiltersInput = PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
-            assert!(matches!(p, PolicyStoreFiltersInput{principal:a,resource:b,policy_type:c,policy_template_id:d} if a.is_none() && b.is_none() && c.is_none() && d.is_none()));
+            let p: PolicyStoreFiltersInput =
+                PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
+            assert!(
+                matches!(p, PolicyStoreFiltersInput{principal:a,resource:b,policy_type:c,policy_template_id:d} if a.is_none() && b.is_none() && c.is_none() && d.is_none())
+            );
         }
-
-
     }
 }

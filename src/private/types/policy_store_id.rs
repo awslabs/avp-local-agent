@@ -19,7 +19,7 @@ impl fmt::Display for PolicyStoreId {
 /// Allows for conversion from `String` to `PolicyStoreId`
 impl From<String> for PolicyStoreId {
     fn from(item: String) -> Self {
-        Self(item,None)
+        Self(item, None)
     }
 }
 
@@ -76,7 +76,9 @@ mod tests {
 
     #[test]
     fn policy_store_id_is_not_equal_to_another_id_with_different_value() {
-        assert!(!PolicyStoreId::from("id".to_string()).eq(&PolicyStoreId::from("other".to_string())));
+        assert!(
+            !PolicyStoreId::from("id".to_string()).eq(&PolicyStoreId::from("other".to_string()))
+        );
     }
 
     #[test]
