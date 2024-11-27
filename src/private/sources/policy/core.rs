@@ -313,7 +313,7 @@ pub mod test {
 
     #[tokio::test]
     async fn test_policy_source_fetch_returns_expected_results_with_mock_client() {
-        let policy_store_id: PolicyStoreId = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id: PolicyStoreId = PolicyStoreId::from("mockPolicyStoreId".to_string());
         let policy_id_1 = PolicyId("mockPolicyId1".to_string());
         let policy_id_2 = PolicyId("mockPolicyId2".to_string());
         let policy_type = "STATIC";
@@ -407,7 +407,7 @@ pub mod test {
 
     #[tokio::test]
     async fn test_template_linked_policy_source_fetch_returns_expected_results_with_mock_client() {
-        let policy_store_id: PolicyStoreId = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id: PolicyStoreId = PolicyStoreId::from("mockPolicyStoreId".to_string());
         let policy_id = PolicyId("mockPolicyId1".to_string());
         let policy_type = "TEMPLATE";
         let policy_template_id = TemplateId("mockPolicyTemplateId".to_string());

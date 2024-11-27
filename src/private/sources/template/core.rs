@@ -201,7 +201,7 @@ pub mod test {
 
     #[tokio::test]
     async fn test_template_source_fetch_returns_expected_results_with_mock_client() {
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
         let policy_template_id = TemplateId("mockTemplateId".to_string());
         let policy_template_id_2 = TemplateId("mockTemplateId2".to_string());
         let statement = "\
@@ -277,7 +277,7 @@ pub mod test {
             .put(policy_template_id_2.clone(), deleted_output);
 
         let result = template_source
-            .fetch(PolicyStoreId(policy_store_id.to_string()))
+            .fetch(PolicyStoreId::from(policy_store_id.to_string()))
             .await
             .unwrap();
 

@@ -110,7 +110,7 @@ mod test {
     #[tokio::test]
     async fn get_template_200() {
         let policy_template_id = TemplateId("mockTemplateId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
         let template_description = "mockTemplateDescription";
         let statement = "some statement";
 
@@ -142,7 +142,7 @@ mod test {
     #[tokio::test]
     async fn get_template_400() {
         let policy_template_id = TemplateId("mockTemplateId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
 
         let request = GetPolicyTemplateRequest {
             policy_store_id: policy_store_id.to_string(),

@@ -49,6 +49,10 @@ derive_builder = "0.20.2"
 serde = { version = "1.0.166", features = ["derive"] }
 serde_json = "1.0.100"
 tokio = { version = "1.0", features = ["full", "signal", "sync", "parking_lot"] }
+uuid = "1.4.1"
+rand = "0.8.5"
+nom = "7.1.3"
+nom-derive = "0.10.1"
 
 [dev-dependencies]
 # Mocking out aws sdk requests

@@ -23,6 +23,8 @@ use crate::private::sources::template::error::TemplateSourceException;
 use crate::private::translator::avp_to_cedar::Policy;
 use crate::private::types::policy_store_id::PolicyStoreId;
 
+use super::PolicyStoreFilters;
+
 /// `ProviderError` thrown by the constructor of the provider
 #[derive(Error, Debug)]
 pub enum ProviderError {
@@ -97,9 +99,25 @@ impl PolicySetProvider {
         policy_store_id: String,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
+        Self::from_client_with_filters(policy_store_id, None, verified_permissions_client)
+    }
+
+    /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
+    /// client and policy store id with additional policy filtering
+    ///
+    /// # Errors
+    ///
+    /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
+    /// applicable data on initialization.
+    #[instrument(skip(verified_permissions_client), err(Debug))]
+    pub fn from_client_with_filters(
+        policy_store_id: String,
+        policy_store_filters: Option<PolicyStoreFilters>,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
         Self::new(
             ConfigBuilder::default()
-                .policy_store_id(PolicyStoreId::from(policy_store_id))
+                .policy_store_id(PolicyStoreId::from(policy_store_id).with_filters(policy_store_filters))
                 .policy_source(VerifiedPermissionsPolicySource::from(
                     verified_permissions_client.clone(),
                 ))

@@ -6,7 +6,7 @@ use crate::private::sources::Load;
 use crate::private::types::{policy_id::PolicyId, policy_store_id::PolicyStoreId};
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::operation::list_policies::ListPoliciesOutput;
-use aws_sdk_verifiedpermissions::types::PolicyItem;
+use aws_sdk_verifiedpermissions::types::{PolicyFilter, PolicyItem};
 use aws_sdk_verifiedpermissions::Client;
 use aws_smithy_runtime_api::client::result::SdkError;
 use std::collections::HashMap;
@@ -40,7 +40,8 @@ impl Load for ListPolicies {
         let mut client_results = self
             .avp_client
             .list_policies()
-            .policy_store_id(policy_store_id.to_string())
+            .policy_store_id(policy_store_id.id().to_string())
+            .set_filter(policy_store_id.filters().map(PolicyFilter::from))
             .into_paginator()
             .send();
         while let Some(page) = client_results.next().await {
@@ -68,7 +69,7 @@ mod test {
 
     #[tokio::test]
     async fn list_policies_empty_200() {
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
         let request = ListPoliciesRequest {
             policy_store_id: policy_store_id.to_string(),
             next_token: None,
@@ -88,7 +89,7 @@ mod test {
 
     #[tokio::test]
     async fn list_policies_200() {
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
         let policy_id = PolicyId("mockPolicyId".to_string());
         let entity_type = "mockEntityType";
         let entity_id = "mockEntityId";
@@ -125,7 +126,7 @@ mod test {
 
     #[tokio::test]
     async fn list_policies_with_pagination_200() {
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
         let policy_id_one = PolicyId("mockPolicyIdOne".to_string());
         let policy_id_two = PolicyId("mockPolicyIdTwo".to_string());
         let policy_type_one = "STATIC";
@@ -183,7 +184,7 @@ mod test {
 
     #[tokio::test]
     async fn list_policies_400() {
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
 
         let request = ListPoliciesRequest {
             policy_store_id: policy_store_id.to_string(),
