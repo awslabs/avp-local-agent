@@ -4,8 +4,8 @@ use aws_sdk_verifiedpermissions::{
 };
 use input::{Entity, PolicyStoreFiltersInput};
 use serde_json::Value;
-/// Structures necessary to represent PolicyFilter as part of a
-/// policy source ID (i.e. PolicyStoreId)
+/// Structures necessary to represent `PolicyFilter` as part of a
+/// policy source ID (i.e. `PolicyStoreId`)
 ///
 /// We can't use the native SDK representations because they are non-exhaustive
 /// and so can't implement Hash or Eq (required for things that are keys).
@@ -20,7 +20,7 @@ use std::{
 };
 use thiserror::Error;
 
-/// EntityReference constrained to be Unspecified or EntityIdentifier
+/// `EntityReference` constrained to be Unspecified or `EntityIdentifier`
 #[derive(Debug, Clone, PartialEq)]
 enum EntityValueType {
     Unspecified(EntityReference),
@@ -62,10 +62,10 @@ impl From<&EntityValueType> for EntityReference {
     }
 }
 
-/// Eq because EntityValueType is needed for Map keys
+/// Eq because `EntityValueType` is needed for Map keys
 impl Eq for EntityValueType {}
 
-/// Hash because EntityValueType is needed for Map keys
+/// Hash because `EntityValueType` is needed for Map keys
 impl Hash for EntityValueType {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
@@ -80,7 +80,7 @@ impl Hash for EntityValueType {
 }
 
 ///
-/// A constrained version of the SDK's PolicyFilter that is Hash and Eq
+/// A constrained version of the SDK's `PolicyFilter` that is Hash and Eq
 ///
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct PolicyStoreFilters {
@@ -93,25 +93,36 @@ pub struct PolicyStoreFilters {
 /// Deserialize a CLI JSON-formatted policy filter specification
 impl PolicyStoreFilters {
     /// Construct from a JSON Value
+    /// 
+    /// # Errors
+    /// If the `Value` does not contain expected structural information
     pub fn from_json_value(json: Value) -> Result<Self, PolicyFilterInputError> {
         serde_json::from_value::<PolicyStoreFiltersInput>(json)
             .map_err(PolicyFilterInputError::JsonDeserializationError)
             .and_then(Self::try_from)
     }
     /// Construct from a JSON string
+    /// 
+    /// # Errors
+    /// If the input string fails to parse into valid JSON, or the resultant
+    /// JSON does not contain expected structural information
     pub fn from_json_str(json: &str) -> Result<Self, PolicyFilterInputError> {
         serde_json::from_str::<PolicyStoreFiltersInput>(json)
             .map_err(PolicyFilterInputError::JsonDeserializationError)
             .and_then(Self::try_from)
     }
     /// Construct from a CLI shorthand string
+    /// 
+    /// # Errors
+    /// If the input string fails to parse into valid structures, or the resultant
+    /// parsed data does not contain expected structural information
     pub fn from_cli_str(s: &str) -> Result<Self, PolicyFilterInputError> {
         input::PolicyStoreFiltersInput::from_str(s).and_then(Self::try_from)
     }
 }
 
 ///
-/// Get an SDK PolicyFilter from our representation
+/// Get an SDK `PolicyFilter` from our representation
 ///
 impl From<&PolicyStoreFilters> for PolicyFilter {
     fn from(value: &PolicyStoreFilters) -> Self {
@@ -181,7 +192,7 @@ mod input {
         },
     }
 
-    /// Transform parsed CLI shorthand input for an EntityInput value
+    /// Transform parsed CLI shorthand input for an `EntityInput` value
     impl<'a> TryFrom<Value<'a>> for Entity {
         type Error = super::PolicyFilterInputError;
 
@@ -275,7 +286,7 @@ mod input {
     impl FromStr for PolicyStoreFiltersInput {
         type Err = super::PolicyFilterInputError;
 
-        /// PolicyStoreFiltersInput from CLI shorthand input
+        /// `PolicyStoreFiltersInput` from CLI shorthand input
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             let s = s.trim_ascii();
             if s.is_empty() {
@@ -394,7 +405,7 @@ mod input {
 
         #[test]
         fn cli_all() {
-            let cli = r#"
+            let cli = r"
                 principal = {
                     identifier = {
                     entityType = User,
@@ -409,7 +420,7 @@ mod input {
                 },
                 policyType = STATIC,
                 policyTemplateId = my-template-id
-            )"#;
+            )";
             let p =
                 PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
             assert_eq!(
@@ -430,7 +441,7 @@ mod input {
 
         #[test]
         fn cli_all_with_unspecified() {
-            let cli = r#"
+            let cli = r"
                 principal = {
                     unspecified = true
                 },
@@ -439,7 +450,7 @@ mod input {
                 },
                 policyType = TEMPLATE_LINKED,
                 policyTemplateId = my-template-id
-            "#;
+            ";
             let p: PolicyStoreFiltersInput =
                 PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
             assert_eq!(

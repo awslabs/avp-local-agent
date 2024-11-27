@@ -115,7 +115,7 @@ fn property_name(input: &str) -> IResult<&str, &str> {
     alpha1(input)
 }
 
-/// Properties are 'property_name "=" any_value' pairs
+/// Properties are '`property_name` "=" `any_value`' pairs
 fn property(input: &str) -> IResult<&str, (&str, Value<'_>)> {
     separated_pair(
         delimited(multispace0, property_name, multispace0),
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn no_structs() {
-        let s = r#"policyType=string1,policyTemplateId=string2"#;
+        let s = r"policyType=string1,policyTemplateId=string2";
         let r = super::structure(s).expect("Should have parsed");
         assert!(r.0.is_empty(), "Should have consumed the entire string");
         if let [(k1, v1), (k2, v2)] = r.1.as_slice() {
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn only_one_simple() {
-        let s = r#"policyType=string1"#;
+        let s = r"policyType=string1";
         let r = super::structure(s).expect("Should have parsed");
         assert!(r.0.is_empty(), "Should have consumed the entire string");
         if let [(k1, v1)] = r.1.as_slice() {
