@@ -103,7 +103,9 @@ impl EntityProvider {
     ) -> Result<Self, ProviderError> {
         Self::new(
             ConfigBuilder::default()
-                .policy_store_id(PolicyStoreId::from(policy_store_id).with_filters(policy_store_filters))
+                .policy_store_id(
+                    PolicyStoreId::from(policy_store_id).with_filters(policy_store_filters),
+                )
                 .schema_source(VerifiedPermissionsSchemaSource::from(
                     verified_permissions_client,
                 ))
