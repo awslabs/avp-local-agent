@@ -20,6 +20,7 @@ use cedar_local_agent::public::{
 use crate::private::sources::schema::core::VerifiedPermissionsSchemaSource;
 use crate::private::sources::schema::error::SchemaException;
 use crate::private::sources::Read;
+use crate::private::types::policy_store_filter::PolicyStoreFilters;
 use crate::private::types::policy_store_id::PolicyStoreId;
 
 /// `ProviderError` can occur during construction of the `EntityProvider`
@@ -80,9 +81,25 @@ impl EntityProvider {
         policy_store_id: String,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
+        Self::from_client_with_filters(policy_store_id, None, verified_permissions_client)
+    }
+
+    /// The `from_client_with_filters` provides a useful method for building the Amazon Verified Permissions
+    /// `EntityProvider`, with additional filters constraining the set of policies managed.
+    ///
+    /// # Errors
+    ///
+    /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
+    /// applicable data on initialization.
+    #[instrument(skip(verified_permissions_client), err(Debug))]
+    pub fn from_client_with_filters(
+        policy_store_id: String,
+        policy_store_filters: Option<PolicyStoreFilters>,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
         Self::new(
             ConfigBuilder::default()
-                .policy_store_id(PolicyStoreId::from(policy_store_id))
+                .policy_store_id(PolicyStoreId::from(policy_store_id).with_filters(policy_store_filters))
                 .schema_source(VerifiedPermissionsSchemaSource::from(
                     verified_permissions_client,
                 ))

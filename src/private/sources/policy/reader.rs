@@ -103,7 +103,7 @@ mod tests {
     #[tokio::test]
     async fn get_policy_200() {
         let policy_id = PolicyId("mockPolicyId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
         let policy_type = "STATIC";
         let principal_entity_type = "principal_entity_type";
         let principal_entity_id = "principal_entity_id";
@@ -160,7 +160,7 @@ mod tests {
     #[tokio::test]
     async fn get_policy_400() {
         let policy_id = PolicyId("mockPolicyId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string());
 
         let request = GetPolicyRequest {
             policy_id: policy_id.to_string(),

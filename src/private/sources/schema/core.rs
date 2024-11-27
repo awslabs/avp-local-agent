@@ -153,7 +153,7 @@ mod test {
 
         let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
         let result = schema_source
-            .fetch(PolicyStoreId(POLICY_STORE_ID.to_string()))
+            .fetch(PolicyStoreId::from(POLICY_STORE_ID.to_string()))
             .await;
 
         assert!(result.is_ok());
@@ -172,7 +172,7 @@ mod test {
         let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
 
         let result = schema_source
-            .fetch(PolicyStoreId(POLICY_STORE_ID.to_string()))
+            .fetch(PolicyStoreId::from(POLICY_STORE_ID.to_string()))
             .await;
 
         assert!(result.is_err());
