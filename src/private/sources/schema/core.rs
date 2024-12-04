@@ -20,6 +20,7 @@ pub trait SchemaSource {
 
     /// This method must call the AVP API `GetPolicySchema` and convert the `GetPolicySchema` output
     /// to a `cedar_policy::Schema`.
+    #[allow(dead_code)]
     async fn fetch(
         &mut self,
         policy_store_id: PolicyStoreId,

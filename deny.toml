@@ -1,58 +1,53 @@
 # This file defines configuration for the cargo deny command
 # Ref: https://github.com/EmbarkStudios/cargo-deny
+[graph]
 targets = []
 
 [advisories]
-vulnerability = "deny"
-unmaintained = "deny"
-notice = "deny"
-unsound = "deny"
-ignore = []
+ignore = [
+    "RUSTSEC-2024-0384", # instant crate only used for web assembly
+    "RUSTSEC-2024-0370", # used in aws-smithy-runtime"
+]
 
 [bans]
 multiple-versions = "deny"
 deny = []
 skip = [
-    { name = "bitflags", version = "=1.3.2" }, # old transitive dependency from cedar_policy_core
+    { name = "aws-smithy-json", version = "=0.61.1" }, # old dependency from derive_builder
     { name = "darling", version = "=0.14.4" }, # old dependency from derive_builder
     { name = "darling_macro", version = "=0.14.4" }, # old dependency from derive_builder
     { name = "darling_core", version = "=0.14.4" }, # old dependency from derive_builder
-    { name = "regex-syntax", version = "<=0.7.5" }, # old transitive dependency from cedar_policy_core
-    { name = "itertools", version = "=0.11.0" }, # old transitive dependency from lalrpop and criterion
-    { name = "syn", version = "=1.0.109" }, # old dependency from derive_builder
     { name = "http", version = "=0.2.12" }, # old dependency from aws-config
-    { name = "windows_aarch64_gnullvm", version = "=0.48.5" }, # old dependency from chrono,lalrpop
-    { name = "windows_aarch64_msvc", version = "=0.48.5" }, # old dependency from chrono,lalrpop
-    { name = "windows_i686_msvc", version = "=0.48.5" }, # old dependency from chrono,lalrpop
-    { name = "windows_i686_gnu", version = "=0.48.5" }, # old dependency from chrono,lalrpop
-    { name = "windows-sys", version = "=0.48.0" }, # old dependency from chrono,lalrpop
-    { name = "windows-targets", version = "=0.48.5" }, # old dependency from chrono,lalrpop
-    { name = "windows_x86_64_gnu", version = "=0.48.5" }, # old dependency from chrono,lalrpop
-    { name = "windows_x86_64_gnullvm", version = "=0.48.5" }, # old dependency from chrono,lalrpop
-    { name = "windows_x86_64_msvc", version = "=0.48.5" }, # old dependency from chrono,lalrpop
+    { name = "http-body", version = "=1.0.1" }, # old dependency from aws-runtime, aw-smithy, hyper
+    { name = "regex-automata", version = "=0.1.10" }, # old dependency from tracing-subscriber
+    { name = "regex-syntax", version = "<=0.7.5" }, # old transitive dependency from cedar_policy_core
+    { name = "strsim", version = "=0.11.1" }, # old dependency from darling_core
+    { name = "syn", version = "=1.0.109" }, # old dependency from derive_builder
+    { name = "windows-sys", version = "=0.59.0" }, # old dependency from home, mio, ring, socket2, term, tokio
+
 ]
 skip-tree = []
 
 [sources]
+allow-git = [
+    "https://github.com/cedar-policy/cedar-local-agent.git",
+]
 unknown-registry = "deny"
 unknown-git = "deny"
 
 [licenses]
-unlicensed = "deny"
-allow-osi-fsf-free = "neither"
-copyleft = "deny"
 confidence-threshold = 0.93
 allow = [
     "Apache-2.0",
     "BSD-3-Clause",
-    "CC0-1.0",
     "ISC", # simplified MIT
     "MIT",
     "OpenSSL",
-    "Unicode-DFS-2016",
+    "Unicode-3.0",
 ]
 clarify = [
     # dependency from aws-config, ring has a non-standard license based on OpenSSL
     { name = "ring", expression = "OpenSSL", license-files = [ { path = "LICENSE", hash = 0xbd0eed23 } ] },
 ]
-exceptions = []
+exceptions = [
+]
