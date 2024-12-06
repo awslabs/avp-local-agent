@@ -106,6 +106,7 @@ dependencies = [
  "chrono",
  "derive_builder",
  "nom",
+ "once_cell",
  "serde",
  "serde_json",
  "serial_test",
