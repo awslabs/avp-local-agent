@@ -103,6 +103,7 @@ dependencies = [
  "chrono",
  "derive_builder",
  "nom",
+ "once_cell",
  "serde",
  "serde_json",
  "thiserror 2.0.11",
