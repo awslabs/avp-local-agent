@@ -27,7 +27,7 @@ pub enum Value<'src> {
     MaybeEscaped(&'src str),
     Struct(Vec<(&'src str, Value<'src>)>),
 }
-impl<'src> Value<'src> {
+impl Value<'_> {
     pub fn is_string(&self) -> bool {
         !matches!(self, Self::Struct(..))
     }
