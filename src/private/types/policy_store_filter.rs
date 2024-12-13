@@ -1,6 +1,9 @@
 use aws_sdk_verifiedpermissions::{
     error::BuildError,
-    types::{EntityIdentifier, EntityReference as SdkEntityReference, PolicyFilter as SdkPolicyFilter, PolicyType},
+    types::{
+        EntityIdentifier, EntityReference as SdkEntityReference, PolicyFilter as SdkPolicyFilter,
+        PolicyType,
+    },
 };
 use input::{Entity, PolicyStoreFiltersInput};
 use serde_json::Value;
@@ -22,7 +25,7 @@ use thiserror::Error;
 
 /// `EntityReference` constrained to be Unspecified or `EntityIdentifier`
 #[derive(Debug, Clone, PartialEq)]
-struct EntityReference (SdkEntityReference);
+struct EntityReference(SdkEntityReference);
 
 /// Translate the parsed input into the type we use throughout
 impl TryFrom<Entity> for EntityReference {
@@ -68,7 +71,7 @@ impl Hash for EntityReference {
                 e.entity_type.hash(state);
                 e.entity_id.hash(state);
             }
-            _ => ()
+            _ => (),
         }
     }
 }
@@ -87,7 +90,7 @@ pub struct PolicyStoreFilters {
 /// Deserialize a CLI JSON-formatted policy filter specification
 impl PolicyStoreFilters {
     /// Construct from a JSON Value
-    /// 
+    ///
     /// # Errors
     /// If the `Value` does not contain expected structural information
     pub fn from_json_value(json: Value) -> Result<Self, PolicyFilterInputError> {
@@ -96,7 +99,7 @@ impl PolicyStoreFilters {
             .and_then(Self::try_from)
     }
     /// Construct from a JSON string
-    /// 
+    ///
     /// # Errors
     /// If the input string fails to parse into valid JSON, or the resultant
     /// JSON does not contain expected structural information
@@ -106,7 +109,7 @@ impl PolicyStoreFilters {
             .and_then(Self::try_from)
     }
     /// Construct from a CLI shorthand string
-    /// 
+    ///
     /// # Errors
     /// If the input string fails to parse into valid structures, or the resultant
     /// parsed data does not contain expected structural information
@@ -194,23 +197,19 @@ mod input {
             if let Value::Struct(c) = value {
                 if let [(k, v)] = c.as_slice() {
                     match (*k, v) {
-                        ("unspecified", Value::Simple(b)) => {
-                            Ok(Self::Unspecified(*b == "true"))
-                        }
-                        ("identifier", Value::Struct(v)) if v.len() == 2 => {
-                            match v.as_slice() {
-                                [("entityType", Value::Simple(t)), ("entityId", Value::Simple(i))]
-                                | [("entityId", Value::Simple(i)), ("entityType", Value::Simple(t))] => {
-                                    Ok(Self::Identifier {
-                                        entity_type: (*t).to_string(),
-                                        entity_id: (*i).to_string(),
-                                    })
-                                }
-                                _ => Err(super::PolicyFilterInputError::ShorthandContentError(
-                                    "unrecognized field or value for Entity identifier".into(),
-                                )),
+                        ("unspecified", Value::Simple(b)) => Ok(Self::Unspecified(*b == "true")),
+                        ("identifier", Value::Struct(v)) if v.len() == 2 => match v.as_slice() {
+                            [("entityType", Value::Simple(t)), ("entityId", Value::Simple(i))]
+                            | [("entityId", Value::Simple(i)), ("entityType", Value::Simple(t))] => {
+                                Ok(Self::Identifier {
+                                    entity_type: (*t).to_string(),
+                                    entity_id: (*i).to_string(),
+                                })
                             }
-                        }
+                            _ => Err(super::PolicyFilterInputError::ShorthandContentError(
+                                "unrecognized field or value for Entity identifier".into(),
+                            )),
+                        },
                         _ => Err(super::PolicyFilterInputError::ShorthandContentError(
                             format!("unrecognized type for Entity reference: {k}"),
                         )),
@@ -264,7 +263,7 @@ mod input {
         }
     }
 
-    #[derive(Deserialize,Default)]
+    #[derive(Deserialize, Default)]
     #[serde(rename_all = "camelCase")]
     pub(super) struct PolicyStoreFiltersInput {
         #[serde(default)]
