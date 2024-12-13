@@ -10,9 +10,9 @@ use std::time::Duration;
     For very specialized needs, this can be modified using the environment variable
     AWS_AVP_SDK_API_RETRY_TIMEOUT
 */
-static API_RETRY_TIMEOUT_IN_SECONDS: Lazy<u64> = Lazy::new(|| 
+static API_RETRY_TIMEOUT_IN_SECONDS: Lazy<u64> = Lazy::new(|| {
     std::env::var("AWS_AVP_SDK_API_RETRY_TIMEOUT").map_or(10, |v| v.parse::<u64>().unwrap_or(10))
-);
+});
 
 /**
 The purpose of the `BackoffStrategy` is to allow fine grained control of

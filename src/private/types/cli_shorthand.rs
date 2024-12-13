@@ -42,10 +42,10 @@ impl Value<'_> {
 }
 
 pub type Error = nom::Err<String>;
-pub fn from_cli_string(
-    input: &str,
-) -> Result<Vec<(&str, Value<'_>)>, Error> {
-    structure(input).map(|v| v.1).map_err(|e| e.map(|e1| e1.to_string()))
+pub fn from_cli_string(input: &str) -> Result<Vec<(&str, Value<'_>)>, Error> {
+    structure(input)
+        .map(|v| v.1)
+        .map_err(|e| e.map(|e1| e1.to_string()))
 }
 
 /// A structure is a comma-separated list of properties.
@@ -54,13 +54,13 @@ pub fn from_cli_string(
 ///
 fn structure(input: &str) -> IResult<&str, Vec<(&str, Value<'_>)>> {
     fold_many1(
-		terminated(property, alt((tag(","), take_till(|c| c == '}'), eof))),
-		Vec::new,
-		|mut acc: Vec<_>, item| {
-			acc.push(item);
-			acc
-		}
-	)(input)
+        terminated(property, alt((tag(","), take_till(|c| c == '}'), eof))),
+        Vec::new,
+        |mut acc: Vec<_>, item| {
+            acc.push(item);
+            acc
+        },
+    )(input)
 }
 
 /// Escaped strings (those inside quotes) MAY have escaped backslashes and embedded quotes
@@ -89,9 +89,7 @@ fn quoted_value(input: &str) -> IResult<&str, Value<'_>> {
 /// The terminating , or } is not consumed
 ///
 fn simple_value(input: &str) -> IResult<&str, Value<'_>> {
-    map(is_not(",}\n"), |s: &str| {
-        Value::Simple(s.trim_ascii())
-    })(input)
+    map(is_not(",}\n"), |s: &str| Value::Simple(s.trim_ascii()))(input)
 }
 
 /// Struct values are brace-delimited
