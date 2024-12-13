@@ -389,10 +389,10 @@ mod input {
         #[test]
         fn json_none() {
             let json = json!({});
-            let p: PolicyStoreFiltersInput =
+            let filters: PolicyStoreFiltersInput =
                 serde_json::from_value(json).expect("Unable to parse intended format");
             assert!(
-                matches!(p, PolicyStoreFiltersInput{principal:a,resource:b,policy_type:c,policy_template_id:d} if a.is_none() && b.is_none() && c.is_none() && d.is_none())
+                matches!(filters, PolicyStoreFiltersInput{principal,resource,policy_type,policy_template_id} if principal.is_none() && resource.is_none() && policy_type.is_none() && policy_template_id.is_none())
             );
         }
 
@@ -461,10 +461,10 @@ mod input {
         #[test]
         fn cli_none() {
             let cli = "";
-            let p: PolicyStoreFiltersInput =
+            let filters: PolicyStoreFiltersInput =
                 PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
             assert!(
-                matches!(p, PolicyStoreFiltersInput{principal:a,resource:b,policy_type:c,policy_template_id:d} if a.is_none() && b.is_none() && c.is_none() && d.is_none())
+                matches!(filters, PolicyStoreFiltersInput{principal,resource,policy_type,policy_template_id} if principal.is_none() && resource.is_none() && policy_type.is_none() && policy_template_id.is_none())
             );
         }
     }
