@@ -11,7 +11,7 @@ use std::time::Duration;
     AWS_AVP_SDK_API_RETRY_TIMEOUT
 */
 static API_RETRY_TIMEOUT_IN_SECONDS: Lazy<u64> = Lazy::new(|| 
-    std::env::var("AWS_AVP_SDK_API_RETRY_TIMEOUT").map_or(10, |v| u64::from_str_radix(&v, 10).unwrap_or(10))
+    std::env::var("AWS_AVP_SDK_API_RETRY_TIMEOUT").map_or(10, |v| v.parse::<u64>().unwrap_or(10))
 );
 
 /**
