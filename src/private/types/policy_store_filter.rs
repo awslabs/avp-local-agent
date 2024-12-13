@@ -1,6 +1,6 @@
 use aws_sdk_verifiedpermissions::{
     error::BuildError,
-    types::{EntityIdentifier, EntityReference, PolicyFilter, PolicyType},
+    types::{EntityIdentifier, EntityReference as SdkEntityReference, PolicyFilter as SdkPolicyFilter, PolicyType},
 };
 use input::{Entity, PolicyStoreFiltersInput};
 use serde_json::Value;
@@ -22,21 +22,18 @@ use thiserror::Error;
 
 /// `EntityReference` constrained to be Unspecified or `EntityIdentifier`
 #[derive(Debug, Clone, PartialEq)]
-enum EntityValueType {
-    Unspecified(EntityReference),
-    Entity(EntityReference),
-}
+struct EntityReference (SdkEntityReference);
 
 /// Translate the parsed input into the type we use throughout
-impl TryFrom<Entity> for EntityValueType {
+impl TryFrom<Entity> for EntityReference {
     type Error = PolicyFilterInputError;
     fn try_from(value: Entity) -> Result<Self, Self::Error> {
         Ok(match value {
-            Entity::Unspecified(b) => Self::Unspecified(EntityReference::Unspecified(b)),
+            Entity::Unspecified(b) => Self(SdkEntityReference::Unspecified(b)),
             Entity::Identifier {
                 entity_type,
                 entity_id,
-            } => Self::Entity(EntityReference::Identifier(
+            } => Self(SdkEntityReference::Identifier(
                 EntityIdentifier::builder()
                     .entity_id(&entity_id)
                     .entity_type(&entity_type)
@@ -53,28 +50,25 @@ impl TryFrom<Entity> for EntityValueType {
 // EntityValueType is effectively a constrained version of EntityReference,
 // so a From relationship is simple to implement
 //
-impl From<&EntityValueType> for EntityReference {
-    fn from(value: &EntityValueType) -> Self {
-        match value {
-            EntityValueType::Unspecified(b) => b.clone(),
-            EntityValueType::Entity(e) => e.clone(),
-        }
+impl From<&EntityReference> for SdkEntityReference {
+    fn from(value: &EntityReference) -> Self {
+        value.0.clone()
     }
 }
 
 /// Eq because `EntityValueType` is needed for Map keys
-impl Eq for EntityValueType {}
+impl Eq for EntityReference {}
 
 /// Hash because `EntityValueType` is needed for Map keys
-impl Hash for EntityValueType {
+impl Hash for EntityReference {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            Self::Unspecified(b) => b.as_unspecified().unwrap().hash(state), // safe unwrap because of new-typing
-            Self::Entity(e) => {
-                let e = e.as_identifier().unwrap(); // safe unwrap because of new-typing
+        match &self.0 {
+            SdkEntityReference::Unspecified(b) => b.hash(state), // safe unwrap because of new-typing
+            SdkEntityReference::Identifier(e) => {
                 e.entity_type.hash(state);
                 e.entity_id.hash(state);
             }
+            _ => ()
         }
     }
 }
@@ -84,8 +78,8 @@ impl Hash for EntityValueType {
 ///
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct PolicyStoreFilters {
-    principal: Option<EntityValueType>,
-    resource: Option<EntityValueType>,
+    principal: Option<EntityReference>,
+    resource: Option<EntityReference>,
     policy_type: Option<PolicyType>,
     policy_template_id: Option<String>,
 }
@@ -124,13 +118,13 @@ impl PolicyStoreFilters {
 ///
 /// Get an SDK `PolicyFilter` from our representation
 ///
-impl From<&PolicyStoreFilters> for PolicyFilter {
+impl From<&PolicyStoreFilters> for SdkPolicyFilter {
     fn from(value: &PolicyStoreFilters) -> Self {
         Self::builder()
             .set_policy_template_id(value.policy_template_id.clone())
             .set_policy_type(value.policy_type.clone())
-            .set_principal(value.principal.as_ref().map(EntityReference::from))
-            .set_resource(value.resource.as_ref().map(EntityReference::from))
+            .set_principal(value.principal.as_ref().map(SdkEntityReference::from))
+            .set_resource(value.resource.as_ref().map(SdkEntityReference::from))
             .build()
     }
 }
@@ -157,10 +151,10 @@ impl TryFrom<PolicyStoreFiltersInput> for PolicyStoreFilters {
         Ok(Self {
             principal: value
                 .principal
-                .map_or(Ok(None), |v| EntityValueType::try_from(v).map(Some))?,
+                .map_or(Ok(None), |v| EntityReference::try_from(v).map(Some))?,
             resource: value
                 .resource
-                .map_or(Ok(None), |v| EntityValueType::try_from(v).map(Some))?,
+                .map_or(Ok(None), |v| EntityReference::try_from(v).map(Some))?,
             policy_type: value.policy_type.map(|v| match v {
                 input::PolicyTypeInput::Static => PolicyType::Static,
                 input::PolicyTypeInput::TemplateLinked => PolicyType::TemplateLinked,
