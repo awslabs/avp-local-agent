@@ -281,7 +281,7 @@ pub mod test {
             .await
             .unwrap();
 
-        assert!(result.get(&policy_template_id_2).is_none());
+        assert!(!result.contains_key(&policy_template_id_2));
 
         let Template(template_result) = result.get(&policy_template_id).unwrap();
         let Template(template_copy) = Template::try_from(updated_output).unwrap();
