@@ -14,6 +14,7 @@ impl fmt::Display for PolicyStoreId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)?;
         if let Some(filter) = &self.1 {
+            f.write_str(";filter=")?;
             filter.fmt(f)?;
         }
         Ok(())
@@ -44,7 +45,7 @@ impl PolicyStoreId {
 
 #[cfg(test)]
 mod tests {
-    use crate::private::types::policy_store_id::PolicyStoreId;
+    use crate::{private::types::policy_store_id::PolicyStoreId, public::PolicyStoreFilter};
     use std::collections::HashMap;
 
     #[test]
@@ -96,46 +97,54 @@ mod tests {
 
     #[test]
     fn policy_store_id_with_filters_formats_as_expected() {
-        let id = PolicyStoreId::from("id".to_string());
-        assert_eq!(id.to_string(), "id");
-    }
-
-    #[test]
-    fn policy_store_id_with_filters_empty_string() {
-        let id = PolicyStoreId::from(String::new());
-        assert_eq!(id.to_string(), "");
+        let id = PolicyStoreId::from("id".to_string()).with_filters(Some(
+            PolicyStoreFilter::from_cli_str("policyTemplateId=mockPolicyTemplate")
+                .expect("CLI filter string should parse correctly"),
+        ));
+        assert_eq!(
+            id.to_string(),
+            "id;filter=policyTemplateId=mockPolicyTemplate"
+        );
     }
 
     #[test]
     fn policy_store_id_with_filters_can_be_inserted_into_hashmap() {
         let mut map: HashMap<PolicyStoreId, i32> = HashMap::new();
-        assert_eq!(map.insert(PolicyStoreId::from("id".to_string()), 1), None);
-        assert_eq!(map.get(&PolicyStoreId::from("id".to_string())), Some(&1));
+        let id = PolicyStoreId::from("id".to_string()).with_filters(Some(
+            PolicyStoreFilter::from_cli_str("policyTemplateId=mockPolicyTemplate")
+                .expect("CLI filter string should parse correctly"),
+        ));
+        let p2 = id.clone();
+        assert_eq!(map.insert(id, 1), None);
+        assert_eq!(map.get(&p2), Some(&1));
     }
 
     #[test]
     fn policy_store_id_with_filters_is_cloneable() {
-        let id = PolicyStoreId::from("id".to_string());
+        let id = PolicyStoreId::from("id".to_string()).with_filters(Some(
+            PolicyStoreFilter::from_cli_str("policyTemplateId=mockPolicyTemplate")
+                .expect("CLI filter string should parse correctly"),
+        ));
         assert_eq!(id.clone(), id);
     }
 
     #[test]
     fn policy_store_id_with_filters_is_equal_to_another_id_with_same_value() {
-        assert!(PolicyStoreId::from("id".to_string()).eq(&PolicyStoreId::from("id".to_string())));
+        let id = PolicyStoreId::from("id".to_string()).with_filters(Some(
+            PolicyStoreFilter::from_cli_str("policyTemplateId=mockPolicyTemplate")
+                .expect("CLI filter string should parse correctly"),
+        ));
+        let id2 = PolicyStoreId::from("id".to_string()).with_filters(Some(
+            PolicyStoreFilter::from_json_str(r#"{"policyTemplateId":"mockPolicyTemplate"}"#)
+                .expect("CLI filter string should parse correctly"),
+        ));
+        assert!(id.eq(&id2));
     }
 
     #[test]
     fn policy_store_id_with_filters_is_not_equal_to_another_id_with_different_value() {
         assert!(
             !PolicyStoreId::from("id".to_string()).eq(&PolicyStoreId::from("other".to_string()))
-        );
-    }
-
-    #[test]
-    fn from_string_to_policy_store_id_with_filters() {
-        assert_eq!(
-            PolicyStoreId::from("ps-1".to_string()),
-            PolicyStoreId::from("ps-1".to_string())
         );
     }
 }
