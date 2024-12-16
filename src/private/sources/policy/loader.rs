@@ -61,11 +61,13 @@ impl Load for ListPolicies {
 #[cfg(test)]
 mod test {
     use crate::private::sources::policy::core::test::{
-        build_entity_identifier, build_policy_item, ListPoliciesRequest, ListPoliciesResponse,
+        build_entity_identifier, build_policy_item, ListPoliciesRequest, ListPoliciesRequestFilter,
+        ListPoliciesResponse,
     };
     use crate::private::sources::policy::loader::{ListPolicies, Load};
     use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::types::{policy_id::PolicyId, policy_store_id::PolicyStoreId};
+    use crate::public::PolicyStoreFilter;
 
     #[tokio::test]
     async fn list_policies_empty_200() {
@@ -74,6 +76,7 @@ mod test {
             policy_store_id: policy_store_id.to_string(),
             next_token: None,
             max_results: 1,
+            filter: None,
         };
         let response = ListPoliciesResponse {
             policies: None,
@@ -99,6 +102,7 @@ mod test {
             policy_store_id: policy_store_id.to_string(),
             next_token: None,
             max_results: 1,
+            filter: None,
         };
 
         let response = ListPoliciesResponse {
@@ -136,6 +140,7 @@ mod test {
             policy_store_id: policy_store_id.to_string(),
             next_token: None,
             max_results: 1,
+            filter: None,
         };
 
         let response_one = ListPoliciesResponse {
@@ -190,6 +195,7 @@ mod test {
             policy_store_id: policy_store_id.to_string(),
             next_token: None,
             max_results: 1,
+            filter: None,
         };
 
         let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
@@ -198,5 +204,50 @@ mod test {
         let policy_loader = ListPolicies::new(client);
         let result = policy_loader.load(policy_store_id).await;
         assert!(result.is_err());
+    }
+    #[tokio::test]
+    async fn list_policies_with_filter_200() {
+        let policy_store_id =
+            PolicyStoreId::from("mockPolicyStoreId".to_string()).with_filters(Some(
+                PolicyStoreFilter::from_cli_str("policyTemplateId=mockPolicyTemplateId")
+                    .expect("filter should parse correctly"),
+            ));
+        let policy_id = PolicyId("mockPolicyId".to_string());
+        let entity_type = "mockEntityType";
+        let entity_id = "mockEntityId";
+        let policy_type = "STATIC";
+
+        let request = ListPoliciesRequest {
+            policy_store_id: policy_store_id.to_string(),
+            next_token: None,
+            max_results: 1,
+            filter: Some(ListPoliciesRequestFilter {
+                policy_template_id: Some("mockPolicyTemplateId".to_string()),
+                ..Default::default()
+            }),
+        };
+
+        let response = ListPoliciesResponse {
+            policies: Some(vec![build_policy_item(
+                &policy_id,
+                &policy_store_id,
+                Some(policy_type.to_string()),
+                Some(build_entity_identifier(entity_type, entity_id)),
+                None,
+                None,
+            )]),
+            next_token: None,
+        };
+
+        let events = vec![build_event(&request, &response, StatusCode::OK)];
+        let client = build_client(events);
+        let policy_loader = ListPolicies::new(client);
+        let results = policy_loader.load(policy_store_id.clone()).await.unwrap();
+        assert_eq!(results.len(), 1);
+        assert!(results.contains_key(&PolicyId(policy_id.to_string())));
+        let policy = results.get(&PolicyId(policy_id.to_string())).unwrap();
+        assert_eq!(policy.policy_type.as_str(), policy_type);
+        assert_eq!(policy.principal.as_ref().unwrap().entity_id, entity_id);
+        assert_eq!(policy.policy_store_id, policy_store_id.to_string());
     }
 }

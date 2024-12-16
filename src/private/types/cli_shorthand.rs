@@ -20,7 +20,6 @@ use nom::{
 ///
 /// The parser performs no String allocations.
 ///
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value<'src> {
     Simple(&'src str),
@@ -132,8 +131,8 @@ mod tests {
         let r = super::structure(s).expect("Should have parsed");
         assert!(r.0.is_empty(), "Should have consumed the entire string");
     }
-    #[test]
 
+    #[test]
     fn all_with_whitespace() {
         let s1 = r#"principal={unspecified=boolean,identifier={entityType=string,entityId="this is \"string"}},resource={unspecified=boolean,identifier={entityType=string,entityId=string}},policyType=string,policyTemplateId=string"#;
         let s2 = r#" 

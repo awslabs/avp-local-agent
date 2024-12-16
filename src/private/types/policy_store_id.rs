@@ -2,12 +2,12 @@
 
 use std::fmt;
 
-use super::policy_store_filter::PolicyStoreFilters;
+use super::policy_store_filter::PolicyStoreFilter;
 
 /// This Object wraps the aws verified permissions `PolicyStoreID` which is an unique identifier
 /// for the policy store.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PolicyStoreId(pub String, pub Option<PolicyStoreFilters>);
+pub struct PolicyStoreId(pub String, pub Option<PolicyStoreFilter>);
 
 /// Formats the `PolicyStoreId` using the given formatter.
 impl fmt::Display for PolicyStoreId {
@@ -24,7 +24,7 @@ impl From<String> for PolicyStoreId {
 }
 
 impl PolicyStoreId {
-    pub fn with_filters(mut self, filters: Option<PolicyStoreFilters>) -> Self {
+    pub fn with_filters(mut self, filters: Option<PolicyStoreFilter>) -> Self {
         self.1 = filters;
         self
     }
@@ -33,7 +33,7 @@ impl PolicyStoreId {
         &self.0
     }
 
-    pub fn filters(&self) -> Option<&PolicyStoreFilters> {
+    pub fn filters(&self) -> Option<&PolicyStoreFilter> {
         self.1.as_ref()
     }
 }

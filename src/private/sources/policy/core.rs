@@ -160,6 +160,40 @@ pub mod test {
 
     //https://docs.aws.amazon.com/verifiedpermissions/latest/apireference/API_ListPolicies.html#API_ListPolicies_RequestSyntax
     #[derive(Debug, Serialize, Deserialize)]
+    pub struct ListPoliciesRequestEntityIdentifier {
+        #[serde(rename = "entityId")]
+        pub entity_id: String,
+        #[serde(rename = "entityType")]
+        pub entity_type: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub enum ListPoliciesRequestEntityReference {
+        #[serde(rename = "identifier")]
+        Identifier(ListPoliciesRequestEntityIdentifier),
+        #[serde(rename = "unspecified")]
+        Unspecified(bool),
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub enum ListPoliciesRequestPolicyType {
+        #[serde(rename = "STATIC")]
+        Static,
+        #[serde(rename = "TEMPLATE_LINKED")]
+        TemplateLinked,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Default)]
+    pub struct ListPoliciesRequestFilter {
+        #[serde(rename = "policyTemplateId")]
+        pub policy_template_id: Option<String>,
+        #[serde(rename = "policyType")]
+        pub policy_type: Option<ListPoliciesRequestPolicyType>,
+        pub principal: Option<ListPoliciesRequestEntityReference>,
+        pub resource: Option<ListPoliciesRequestEntityReference>,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
     pub struct ListPoliciesRequest {
         #[serde(rename = "policyStoreId")]
         pub policy_store_id: String,
@@ -167,6 +201,7 @@ pub mod test {
         pub next_token: Option<String>,
         #[serde(rename = "maxResults")]
         pub max_results: i32,
+        pub filter: Option<ListPoliciesRequestFilter>,
     }
 
     //https://docs.aws.amazon.com/verifiedpermissions/latest/apireference/API_ListPolicies.html#API_ListPolicies_ResponseSyntax
@@ -322,6 +357,7 @@ pub mod test {
             policy_store_id: policy_store_id.to_string(),
             next_token: None,
             max_results: 1,
+            filter: None,
         };
 
         let loader_response = ListPoliciesResponse {
@@ -428,6 +464,7 @@ pub mod test {
             policy_store_id: policy_store_id.to_string(),
             next_token: None,
             max_results: 1,
+            filter: None,
         };
 
         let loader_response = ListPoliciesResponse {

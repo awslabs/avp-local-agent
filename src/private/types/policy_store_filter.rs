@@ -5,7 +5,7 @@ use aws_sdk_verifiedpermissions::{
         PolicyType,
     },
 };
-use input::{Entity, PolicyStoreFiltersInput};
+use input::{Entity, PolicyStoreFilterInput};
 use serde_json::Value;
 /// Structures necessary to represent `PolicyFilter` as part of a
 /// policy source ID (i.e. `PolicyStoreId`)
@@ -80,7 +80,7 @@ impl Hash for EntityReference {
 /// A constrained version of the SDK's `PolicyFilter` that is Hash and Eq
 ///
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct PolicyStoreFilters {
+pub struct PolicyStoreFilter {
     principal: Option<EntityReference>,
     resource: Option<EntityReference>,
     policy_type: Option<PolicyType>,
@@ -88,13 +88,13 @@ pub struct PolicyStoreFilters {
 }
 
 /// Deserialize a CLI JSON-formatted policy filter specification
-impl PolicyStoreFilters {
+impl PolicyStoreFilter {
     /// Construct from a JSON Value
     ///
     /// # Errors
     /// If the `Value` does not contain expected structural information
     pub fn from_json_value(json: Value) -> Result<Self, PolicyFilterInputError> {
-        serde_json::from_value::<PolicyStoreFiltersInput>(json)
+        serde_json::from_value::<PolicyStoreFilterInput>(json)
             .map_err(PolicyFilterInputError::JsonDeserializationError)
             .and_then(Self::try_from)
     }
@@ -104,7 +104,7 @@ impl PolicyStoreFilters {
     /// If the input string fails to parse into valid JSON, or the resultant
     /// JSON does not contain expected structural information
     pub fn from_json_str(json: &str) -> Result<Self, PolicyFilterInputError> {
-        serde_json::from_str::<PolicyStoreFiltersInput>(json)
+        serde_json::from_str::<PolicyStoreFilterInput>(json)
             .map_err(PolicyFilterInputError::JsonDeserializationError)
             .and_then(Self::try_from)
     }
@@ -114,15 +114,15 @@ impl PolicyStoreFilters {
     /// If the input string fails to parse into valid structures, or the resultant
     /// parsed data does not contain expected structural information
     pub fn from_cli_str(s: &str) -> Result<Self, PolicyFilterInputError> {
-        input::PolicyStoreFiltersInput::from_str(s).and_then(Self::try_from)
+        input::PolicyStoreFilterInput::from_str(s).and_then(Self::try_from)
     }
 }
 
 ///
 /// Get an SDK `PolicyFilter` from our representation
 ///
-impl From<&PolicyStoreFilters> for SdkPolicyFilter {
-    fn from(value: &PolicyStoreFilters) -> Self {
+impl From<&PolicyStoreFilter> for SdkPolicyFilter {
+    fn from(value: &PolicyStoreFilter) -> Self {
         Self::builder()
             .set_policy_template_id(value.policy_template_id.clone())
             .set_policy_type(value.policy_type.clone())
@@ -147,10 +147,10 @@ pub enum PolicyFilterInputError {
 ///
 /// Convert the parsed version into a real version
 ///
-impl TryFrom<PolicyStoreFiltersInput> for PolicyStoreFilters {
+impl TryFrom<PolicyStoreFilterInput> for PolicyStoreFilter {
     type Error = PolicyFilterInputError;
 
-    fn try_from(value: PolicyStoreFiltersInput) -> Result<Self, Self::Error> {
+    fn try_from(value: PolicyStoreFilterInput) -> Result<Self, Self::Error> {
         Ok(Self {
             principal: value
                 .principal
@@ -265,7 +265,7 @@ mod input {
 
     #[derive(Deserialize, Default)]
     #[serde(rename_all = "camelCase")]
-    pub(super) struct PolicyStoreFiltersInput {
+    pub(super) struct PolicyStoreFilterInput {
         #[serde(default)]
         pub(super) principal: Option<Entity>,
         #[serde(default)]
@@ -276,7 +276,7 @@ mod input {
         pub(super) policy_template_id: Option<String>,
     }
 
-    impl FromStr for PolicyStoreFiltersInput {
+    impl FromStr for PolicyStoreFilterInput {
         type Err = super::PolicyFilterInputError;
 
         /// `PolicyStoreFiltersInput` from CLI shorthand input
@@ -342,7 +342,7 @@ mod input {
                     "policyTemplateId": "my-template-id"
                   }
             );
-            let p: PolicyStoreFiltersInput =
+            let p: PolicyStoreFilterInput =
                 serde_json::from_value(json).expect("Unable to parse intended format");
             assert_eq!(
                 p.policy_template_id.expect("Template ID should be set"),
@@ -373,7 +373,7 @@ mod input {
                     "policyTemplateId": "my-template-id"
                   }
             );
-            let p: PolicyStoreFiltersInput =
+            let p: PolicyStoreFilterInput =
                 serde_json::from_value(json).expect("Unable to parse intended format");
             assert_eq!(
                 p.policy_template_id.expect("Template ID should be set"),
@@ -389,10 +389,10 @@ mod input {
         #[test]
         fn json_none() {
             let json = json!({});
-            let filters: PolicyStoreFiltersInput =
+            let filters: PolicyStoreFilterInput =
                 serde_json::from_value(json).expect("Unable to parse intended format");
             assert!(
-                matches!(filters, PolicyStoreFiltersInput{principal,resource,policy_type,policy_template_id} if principal.is_none() && resource.is_none() && policy_type.is_none() && policy_template_id.is_none())
+                matches!(filters, PolicyStoreFilterInput{principal,resource,policy_type,policy_template_id} if principal.is_none() && resource.is_none() && policy_type.is_none() && policy_template_id.is_none())
             );
         }
 
@@ -414,8 +414,7 @@ mod input {
                 policyType = STATIC,
                 policyTemplateId = my-template-id
             )";
-            let p =
-                PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
+            let p = PolicyStoreFilterInput::from_str(cli).expect("Unable to parse intended format");
             assert_eq!(
                 p.policy_template_id.expect("Template ID should be set"),
                 "my-template-id"
@@ -444,8 +443,8 @@ mod input {
                 policyType = TEMPLATE_LINKED,
                 policyTemplateId = my-template-id
             ";
-            let p: PolicyStoreFiltersInput =
-                PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
+            let p: PolicyStoreFilterInput =
+                PolicyStoreFilterInput::from_str(cli).expect("Unable to parse intended format");
             assert_eq!(
                 p.policy_template_id.expect("Template ID should be set"),
                 "my-template-id"
@@ -461,11 +460,141 @@ mod input {
         #[test]
         fn cli_none() {
             let cli = "";
-            let filters: PolicyStoreFiltersInput =
-                PolicyStoreFiltersInput::from_str(cli).expect("Unable to parse intended format");
+            let filters: PolicyStoreFilterInput =
+                PolicyStoreFilterInput::from_str(cli).expect("Unable to parse intended format");
             assert!(
-                matches!(filters, PolicyStoreFiltersInput{principal,resource,policy_type,policy_template_id} if principal.is_none() && resource.is_none() && policy_type.is_none() && policy_template_id.is_none())
+                matches!(filters, PolicyStoreFilterInput{principal,resource,policy_type,policy_template_id} if principal.is_none() && resource.is_none() && policy_type.is_none() && policy_template_id.is_none())
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+
+    static FULL_FILTER_CLI: &str = r"
+        principal = {
+            identifier = {
+                entityType = User,
+                entityId = nobody
+            }
+        },
+        resource = {
+            identifier = {
+                entityType = Path,
+                entityId = /one/two/three
+            }
+        },
+        policyType = STATIC,
+        policyTemplateId = my-template-id
+    ";
+
+    static FULL_FILTER_JSON: &str = r#"{
+        "principal": {
+            "identifier": {
+                "entityType": "User",
+                "entityId": "nobody"
+            }
+        },
+        "resource": {
+            "identifier": {
+                "entityType": "Path",
+                "entityId": "/one/two/three"
+            }
+        },
+        "policyType": "STATIC",
+        "policyTemplateId": "my-template-id"
+    }"#;
+
+    #[test]
+    fn test_full_filter_from_cli() {
+        let filter = PolicyStoreFilter::from_cli_str(FULL_FILTER_CLI)
+            .expect("shorthand should be correctly parsed");
+        assert_eq!(
+            filter
+                .policy_template_id
+                .expect("Template ID should be set"),
+            "my-template-id"
+        );
+        assert_eq!(
+            filter.policy_type.expect("Policy type should be set"),
+            PolicyType::Static
+        );
+        assert!(
+            matches!(filter.principal, Some(EntityReference(SdkEntityReference::Identifier(identifier))) if identifier.entity_type() == "User" && identifier.entity_id() == "nobody")
+        );
+        assert!(
+            matches!(filter.resource, Some(EntityReference(SdkEntityReference::Identifier(identifier))) if identifier.entity_type() == "Path" && identifier.entity_id() == "/one/two/three")
+        );
+    }
+
+    #[test]
+    fn test_full_filter_from_json_str() {
+        let filter = PolicyStoreFilter::from_json_str(FULL_FILTER_JSON)
+            .expect("JSON str should be correctly parsed");
+        assert_eq!(
+            filter
+                .policy_template_id
+                .expect("Template ID should be set"),
+            "my-template-id"
+        );
+        assert_eq!(
+            filter.policy_type.expect("Policy type should be set"),
+            PolicyType::Static
+        );
+        assert!(
+            matches!(filter.principal, Some(EntityReference(SdkEntityReference::Identifier(identifier))) if identifier.entity_type() == "User" && identifier.entity_id() == "nobody")
+        );
+        assert!(
+            matches!(filter.resource, Some(EntityReference(SdkEntityReference::Identifier(identifier))) if identifier.entity_type() == "Path" && identifier.entity_id() == "/one/two/three")
+        );
+    }
+
+    #[test]
+    fn test_full_filter_from_json_value() {
+        let value: Value =
+            serde_json::from_str(FULL_FILTER_JSON).expect("JSON str should be correctly parsed");
+        let filter = PolicyStoreFilter::from_json_value(value)
+            .expect("JSON str should represent a valid policy filter");
+        assert_eq!(
+            filter
+                .policy_template_id
+                .expect("Template ID should be set"),
+            "my-template-id"
+        );
+        assert_eq!(
+            filter.policy_type.expect("Policy type should be set"),
+            PolicyType::Static
+        );
+        assert!(
+            matches!(filter.principal, Some(EntityReference(SdkEntityReference::Identifier(identifier))) if identifier.entity_type() == "User" && identifier.entity_id() == "nobody")
+        );
+        assert!(
+            matches!(filter.resource, Some(EntityReference(SdkEntityReference::Identifier(identifier))) if identifier.entity_type() == "Path" && identifier.entity_id() == "/one/two/three")
+        );
+    }
+
+    #[test]
+    fn test_full_filter_equality() {
+        let cli_filter = PolicyStoreFilter::from_cli_str(FULL_FILTER_CLI)
+            .expect("shorthand should be correctly parsed");
+        let json_filter = PolicyStoreFilter::from_json_str(FULL_FILTER_JSON)
+            .expect("JSON str should be correctly parsed");
+        assert_eq!(cli_filter, json_filter);
+    }
+
+    #[test]
+    fn test_use_as_hashmap_key() {
+        let mut hashmap: HashMap<PolicyStoreFilter, bool> = HashMap::new();
+        let cli_filter = PolicyStoreFilter::from_cli_str(FULL_FILTER_CLI)
+            .expect("shorthand should be correctly parsed");
+        hashmap.insert(cli_filter, true);
+        let json_filter = PolicyStoreFilter::from_json_str(FULL_FILTER_JSON)
+            .expect("JSON str should be correctly parsed");
+        let filter_ref = hashmap.get(&json_filter);
+        assert_eq!(Some(&true), filter_ref);
     }
 }
