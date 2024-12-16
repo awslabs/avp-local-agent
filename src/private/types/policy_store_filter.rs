@@ -1,12 +1,3 @@
-use aws_sdk_verifiedpermissions::{
-    error::BuildError,
-    types::{
-        EntityIdentifier, EntityReference as SdkEntityReference, PolicyFilter as SdkPolicyFilter,
-        PolicyType,
-    },
-};
-use input::{Entity, PolicyStoreFilterInput};
-use serde_json::Value;
 /// Structures necessary to represent `PolicyFilter` as part of a
 /// policy source ID (i.e. `PolicyStoreId`)
 ///
@@ -17,7 +8,17 @@ use serde_json::Value;
 /// to the SDK versions so that, at the time of SDK invocations we can easily
 /// produce the right structures.
 ///
+use aws_sdk_verifiedpermissions::{
+    error::BuildError,
+    types::{
+        EntityIdentifier, EntityReference as SdkEntityReference, PolicyFilter as SdkPolicyFilter,
+        PolicyType,
+    },
+};
+use input::{Entity, PolicyStoreFilterInput};
+use serde_json::Value;
 use std::{
+    fmt::{self, Write},
     hash::{Hash, Hasher},
     str::FromStr,
 };
@@ -27,6 +28,26 @@ use thiserror::Error;
 #[derive(Debug, Clone, PartialEq)]
 struct EntityReference(SdkEntityReference);
 
+impl fmt::Display for EntityReference {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_char('{')?;
+        match &self.0 {
+            SdkEntityReference::Identifier(entity_identifier) => {
+                formatter.write_str("identifier={entityType=")?;
+                entity_identifier.entity_type().fmt(formatter)?;
+                formatter.write_str(",entityId=")?;
+                entity_identifier.entity_id().fmt(formatter)?;
+                formatter.write_char('}')?;
+            }
+            SdkEntityReference::Unspecified(b) => {
+                formatter.write_str("unspecified=")?;
+                b.fmt(formatter)?;
+            }
+            _ => (),
+        }
+        formatter.write_char('}')
+    }
+}
 /// Translate the parsed input into the type we use throughout
 impl TryFrom<Entity> for EntityReference {
     type Error = PolicyFilterInputError;
@@ -85,6 +106,40 @@ pub struct PolicyStoreFilter {
     resource: Option<EntityReference>,
     policy_type: Option<PolicyType>,
     policy_template_id: Option<String>,
+}
+
+/// Formats the `PolicyStoreFilter` as CLI shorthand using the given formatter.
+impl fmt::Display for PolicyStoreFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut comma = "";
+        if let Some(e_ref) = &self.principal {
+            f.write_str("principal=")?;
+            e_ref.fmt(f)?;
+            comma = ",";
+        }
+        if let Some(e_ref) = &self.resource {
+            f.write_str(comma)?;
+            f.write_str("resource=")?;
+            e_ref.fmt(f)?;
+            comma = ",";
+        }
+        if let Some(policy_type) = &self.policy_type {
+            f.write_str(comma)?;
+            f.write_str("policyType=")?;
+            match policy_type {
+                PolicyType::Static => f.write_str("STATIC")?,
+                PolicyType::TemplateLinked => f.write_str("TEMPLATE_LINKED")?,
+                _ => f.write_str("UNSUPPORTED")?,
+            }
+            comma = ",";
+        }
+        if let Some(template_id) = &self.policy_template_id {
+            f.write_str(comma)?;
+            f.write_str("policyTemplateId=")?;
+            template_id.fmt(f)?;
+        }
+        Ok(())
+    }
 }
 
 /// Deserialize a CLI JSON-formatted policy filter specification
