@@ -65,6 +65,7 @@ pub trait Cache {
     fn new() -> Self;
 
     /// Getter method for cache, returns reference to value in cache which is not thread safe
+    #[allow(dead_code)]
     fn get(&self, key: &Self::Key) -> Option<&Self::Value>;
 
     /// Insert method for cache which takes a `Key` and `Value` pair

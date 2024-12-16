@@ -88,7 +88,7 @@ mod test {
 
     #[tokio::test]
     async fn get_schema_200() {
-        let policy_store_id = PolicyStoreId("ps-1".to_string());
+        let policy_store_id = PolicyStoreId::from("ps-1".to_string());
         let schema = "some schema";
 
         let request = GetSchemaRequest {
@@ -112,7 +112,7 @@ mod test {
 
     #[tokio::test]
     async fn get_schema_400() {
-        let policy_store_id = PolicyStoreId("ps-1".to_string());
+        let policy_store_id = PolicyStoreId::from("ps-1".to_string());
 
         let request = GetSchemaRequest {
             policy_store_id: policy_store_id.to_string(),

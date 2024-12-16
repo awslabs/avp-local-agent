@@ -76,7 +76,7 @@ mod test {
 
     #[tokio::test]
     async fn list_templates_empty_result_200() {
-        let policy_store_id = PolicyStoreId("mockPolicyStore".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStore".to_string());
 
         let request = ListPolicyTemplatesRequest {
             policy_store_id: policy_store_id.to_string(),
@@ -100,7 +100,7 @@ mod test {
     #[tokio::test]
     async fn list_templates_200() {
         let policy_template_id = TemplateId("mockTemplateId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStore".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStore".to_string());
         let template_description = "mockDescription";
 
         let request = ListPolicyTemplatesRequest {
@@ -140,7 +140,7 @@ mod test {
 
     #[tokio::test]
     async fn list_templates_with_pagination_200() {
-        let policy_store_id = PolicyStoreId("mockPolicyStore".to_string());
+        let policy_store_id = PolicyStoreId::from("mockPolicyStore".to_string());
         let policy_template_id = TemplateId("mockTemplateId".to_string());
         let policy_template_id_2 = TemplateId("mockTemplateId2".to_string());
         let policy_template_description = "mockDescription";
