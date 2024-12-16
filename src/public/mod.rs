@@ -3,4 +3,4 @@ pub mod client;
 pub mod entity_provider;
 pub mod policy_set_provider;
 
-pub use crate::private::PolicyStoreFilters;
+pub use crate::private::PolicyStoreFilter;

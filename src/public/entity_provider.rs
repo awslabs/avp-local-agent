@@ -21,7 +21,7 @@ use cedar_local_agent::public::{
 use crate::private::sources::schema::core::VerifiedPermissionsSchemaSource;
 use crate::private::sources::schema::error::SchemaException;
 use crate::private::sources::Read;
-use crate::private::types::policy_store_filter::PolicyStoreFilters;
+use crate::private::types::policy_store_filter::PolicyStoreFilter;
 use crate::private::types::policy_store_id::PolicyStoreId;
 
 /// `ProviderError` can occur during construction of the `EntityProvider`
@@ -98,7 +98,7 @@ impl EntityProvider {
     #[instrument(skip(verified_permissions_client), err(Debug))]
     pub fn from_client_with_filters(
         policy_store_id: String,
-        policy_store_filters: Option<PolicyStoreFilters>,
+        policy_store_filters: Option<PolicyStoreFilter>,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
         Self::new(
