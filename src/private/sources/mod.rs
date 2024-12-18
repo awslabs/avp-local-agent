@@ -49,6 +49,7 @@ pub trait Read {
 /// This trait is limited to a non-thread safe cache as the `get` function returns a reference
 /// which cannot protect internal state using a Mutex/RwLock
 #[async_trait]
+#[allow(dead_code)]
 pub trait Cache {
     /// `Key` id of policy store data
     type Key;
@@ -65,6 +66,7 @@ pub trait Cache {
     fn new() -> Self;
 
     /// Getter method for cache, returns reference to value in cache which is not thread safe
+    #[allow(dead_code)]
     fn get(&self, key: &Self::Key) -> Option<&Self::Value>;
 
     /// Insert method for cache which takes a `Key` and `Value` pair

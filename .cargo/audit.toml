@@ -1,0 +1,8 @@
+# This file defines configuration for the cargo audit command
+# Ref: https://github.com/rustsec/rustsec/blob/HEAD/cargo-audit/audit.toml.example
+
+[advisories]
+ignore = [
+    "RUSTSEC-2024-0384", # instant crate only used for web assembly
+    "RUSTSEC-2024-0370", # used in aws-smithy-runtime"
+]

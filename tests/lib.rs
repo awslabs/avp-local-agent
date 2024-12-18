@@ -55,9 +55,9 @@ mod test {
 
     fn build_request(principal: &str, action: &str, resource: i32) -> Request {
         Request::new(
-            Some(format!("User::\"{principal}\"").parse().unwrap()),
-            Some(format!("Action::\"{action}\"").parse().unwrap()),
-            Some(format!("Box::\"{resource}\"").parse().unwrap()),
+            format!("User::\"{principal}\"").parse().unwrap(),
+            format!("Action::\"{action}\"").parse().unwrap(),
+            format!("Box::\"{resource}\"").parse().unwrap(),
             Context::empty(),
             None,
         )
@@ -101,7 +101,7 @@ mod test {
 
         let entities_file = File::open("tests/data/sweets.entities.json").unwrap();
         let schema_file = File::open("tests/data/sweets.schema.cedar.json").unwrap();
-        let schema = Schema::from_file(schema_file).unwrap();
+        let schema = Schema::from_json_file(schema_file).unwrap();
         let entities = Entities::from_json_file(entities_file, Some(&schema)).unwrap();
 
         validate_requests(&authorizer, requests(), &entities).await;
@@ -124,7 +124,7 @@ mod test {
 
         let entities_file = File::open("tests/data/sweets.entities.json").unwrap();
         let schema_file = File::open("tests/data/sweets.schema.cedar.json").unwrap();
-        let schema = Schema::from_file(schema_file).unwrap();
+        let schema = Schema::from_json_file(schema_file).unwrap();
         let entities = Entities::from_json_file(entities_file, Some(&schema)).unwrap();
 
         validate_requests(&authorizer, requests(), &entities).await;

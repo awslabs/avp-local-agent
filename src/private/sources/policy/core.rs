@@ -398,7 +398,7 @@ pub mod test {
 
         let result = policy_source.fetch(policy_store_id).await.unwrap();
 
-        assert!(result.get(&policy_id_2).is_none());
+        assert!(!result.contains_key(&policy_id_2));
         assert_eq!(
             result.get(&policy_id_1).unwrap().clone(),
             Policy::try_from(static_definition).unwrap()
