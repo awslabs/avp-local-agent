@@ -22,8 +22,8 @@ jobs:
       - run: cargo test --verbose
       - run: cargo test --verbose --no-default-features
       - run: cargo bench --no-run
-      - run: cargo audit --deny warnings
-      - uses: EmbarkStudios/cargo-deny-action@v1 # cargo deny check
+      - run: cargo install cargo-audit && cargo audit --deny warnings
+      - uses: EmbarkStudios/cargo-deny-action@v2 # cargo deny check
       - name: Setup grcov dependencies
         run: |
           cargo install grcov
