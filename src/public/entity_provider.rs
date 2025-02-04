@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
-use cedar_policy::{CedarSchemaError, Entities, Request, Schema, SchemaError};
-use cedar_policy_core::entities::err::EntitiesError;
+use cedar_policy::{
+    entities_errors::EntitiesError, CedarSchemaError, Entities, Request, Schema, SchemaError,
+};
 use derive_builder::Builder;
 use thiserror::Error;
 use tokio::runtime::Handle;
