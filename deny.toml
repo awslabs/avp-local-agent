@@ -13,7 +13,6 @@ ignore = [
 multiple-versions = "deny"
 deny = []
 skip = [
-    { name = "aws-smithy-json", version = "=0.61.1" }, # old dependency from derive_builder
     { name = "darling", version = "=0.14.4" }, # old dependency from derive_builder
     { name = "darling_macro", version = "=0.14.4" }, # old dependency from derive_builder
     { name = "darling_core", version = "=0.14.4" }, # old dependency from derive_builder
@@ -24,7 +23,12 @@ skip = [
     { name = "strsim", version = "=0.11.1" }, # old dependency from darling_core
     { name = "syn", version = "=1.0.109" }, # old dependency from derive_builder
     { name = "windows-sys", version = "=0.59.0" }, # old dependency from home, mio, ring, socket2, term, tokio
-
+    { name = "aws-smithy-json", version = "=0.60.7" }, # needed by aws-sdk-verified-permissions
+    { name = "thiserror", version = "=1.0.69" }, # needed by cedar and aws-smithy-runtime, and the current version of the cla in crates.io
+    { name = "thiserror-impl", version = "=1.0.69" },
+    { name = "derive_builder", version = "=0.12.0" }, # needed by the current version of the cla in crates.io
+    { name = "derive_builder_core", version = "=0.12.0" },
+    { name = "derive_builder_macro", version = "=0.12.0" }
 ]
 skip-tree = []
 

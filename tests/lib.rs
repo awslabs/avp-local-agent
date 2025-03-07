@@ -18,8 +18,7 @@ mod test {
     };
     use aws_types::region::Region;
     use backoff::ExponentialBackoff;
-    use cedar_policy::{Context, Entities, Request, Schema};
-    use cedar_policy_core::authorizer::Decision;
+    use cedar_policy::{Context, Decision, Entities, Request, Schema};
 
     use avp_local_agent::public::client::verified_permissions_default_credentials;
     use avp_local_agent::public::entity_provider::EntityProvider;

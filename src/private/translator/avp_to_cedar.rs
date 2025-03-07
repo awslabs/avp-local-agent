@@ -145,8 +145,7 @@ mod test {
         TemplateLinkedPolicyDefinitionDetail,
     };
     use aws_smithy_types::DateTime;
-    use cedar_policy::Entities;
-    use cedar_policy_core::entities::err::EntitiesError;
+    use cedar_policy::{entities_errors::EntitiesError, Entities};
 
     const POLICY_ID: &str = "dummy-policy-id";
     const POLICY_STORE_ID: &str = "dummy-policy-store-id";
