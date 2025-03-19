@@ -5,7 +5,7 @@ use nom::{
     combinator::{eof, map},
     multi::fold_many1,
     sequence::{delimited, preceded, separated_pair, terminated},
-    IResult,
+    IResult, Parser,
 };
 
 ///A parser for AWS CLI shorthand structures, particularly those that are used with AVP.
@@ -59,7 +59,7 @@ fn structure(input: &str) -> IResult<&str, Vec<(&str, Value<'_>)>> {
             acc.push(item);
             acc
         },
-    )(input)
+    ).parse(input)
 }
 
 /// Escaped strings (those inside quotes) MAY have escaped backslashes and embedded quotes
@@ -80,7 +80,7 @@ fn quoted_value(input: &str) -> IResult<&str, Value<'_>> {
             terminated(tag(r#"""#), multispace0),
         ),
         Value::MaybeEscaped,
-    )(input)
+    ).parse(input)
 }
 
 /// Simple values are unquoted values that are terminated by a "," or a "}"
@@ -88,7 +88,7 @@ fn quoted_value(input: &str) -> IResult<&str, Value<'_>> {
 /// The terminating , or } is not consumed
 ///
 fn simple_value(input: &str) -> IResult<&str, Value<'_>> {
-    map(is_not(",}\n"), |s: &str| Value::Simple(s.trim_ascii()))(input)
+    map(is_not(",}\n"), |s: &str| Value::Simple(s.trim_ascii())).parse(input)
 }
 
 /// Struct values are brace-delimited
@@ -99,12 +99,12 @@ fn struct_value(input: &str) -> IResult<&str, Value<'_>> {
     map(
         delimited(tag("{"), structure, preceded(multispace0, tag("}"))),
         Value::Struct,
-    )(input)
+    ).parse(input)
 }
 
 /// Values are strings or braced structures
 fn any_value(input: &str) -> IResult<&str, Value<'_>> {
-    alt((struct_value, quoted_value, simple_value))(input)
+    alt((struct_value, quoted_value, simple_value)).parse(input)
 }
 
 /// Property names are alpha
@@ -118,7 +118,7 @@ fn property(input: &str) -> IResult<&str, (&str, Value<'_>)> {
         delimited(multispace0, property_name, multispace0),
         tag("="),
         delimited(multispace0, any_value, multispace0),
-    )(input)
+    ).parse(input)
 }
 
 #[cfg(test)]
