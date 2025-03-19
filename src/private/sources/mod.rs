@@ -49,6 +49,7 @@ pub trait Read {
 /// This trait is limited to a non-thread safe cache as the `get` function returns a reference
 /// which cannot protect internal state using a Mutex/RwLock
 #[async_trait]
+#[allow(dead_code)]
 pub trait Cache {
     /// `Key` id of policy store data
     type Key;

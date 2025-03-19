@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
-use cedar_policy::{Entities, Request, Schema, SchemaError};
-use cedar_policy_core::entities::EntitiesError;
+use cedar_policy::{
+    entities_errors::EntitiesError, CedarSchemaError, Entities, Request, Schema, SchemaError,
+};
 use derive_builder::Builder;
 use thiserror::Error;
 use tokio::runtime::Handle;
@@ -38,6 +39,9 @@ pub enum ProviderError {
     /// Cannot extract entities from the schema
     #[error("Failed to extract entities from the schema")]
     ExtractEntities(#[from] EntitiesError),
+    /// Cannot parse Cedar schema
+    #[error("Cedar schema cadnno be parsed")]
+    CedarSchemaError(#[from] CedarSchemaError),
 }
 
 impl From<ConfigBuilderError> for ProviderError {
@@ -180,8 +184,11 @@ impl UpdateProviderData for EntityProvider {
 
         let entities = match fetch_schema_result {
             Ok(get_schema_output) => {
-                let schema = Schema::from_str(&get_schema_output.schema).map_err(|e| {
-                    UpdateProviderDataError::General(Box::new(ProviderError::from(e)))
+                let schema = Schema::from_str(&get_schema_output.schema).map_err(|e| match e {
+                    CedarSchemaError::Schema(err) => {
+                        UpdateProviderDataError::General(Box::new(ProviderError::from(err)))
+                    }
+                    _ => UpdateProviderDataError::General(Box::new(e)),
                 })?;
                 schema.action_entities().map_err(|e| {
                     UpdateProviderDataError::General(Box::new(ProviderError::from(e)))

@@ -18,8 +18,7 @@ mod test {
     };
     use aws_types::region::Region;
     use backoff::ExponentialBackoff;
-    use cedar_policy::{Context, Entities, Request, Schema};
-    use cedar_policy_core::authorizer::Decision;
+    use cedar_policy::{Context, Decision, Entities, Request, Schema};
 
     use avp_local_agent::public::client::verified_permissions_default_credentials;
     use avp_local_agent::public::entity_provider::EntityProvider;
@@ -55,9 +54,9 @@ mod test {
 
     fn build_request(principal: &str, action: &str, resource: i32) -> Request {
         Request::new(
-            Some(format!("User::\"{principal}\"").parse().unwrap()),
-            Some(format!("Action::\"{action}\"").parse().unwrap()),
-            Some(format!("Box::\"{resource}\"").parse().unwrap()),
+            format!("User::\"{principal}\"").parse().unwrap(),
+            format!("Action::\"{action}\"").parse().unwrap(),
+            format!("Box::\"{resource}\"").parse().unwrap(),
             Context::empty(),
             None,
         )
