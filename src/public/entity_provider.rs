@@ -1,6 +1,7 @@
 //! Provides an Amazon Verified Permissions Entity provider!
 use std::str::FromStr;
 use std::sync::Arc;
+use std::fmt::Debug;
 
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
@@ -21,7 +22,6 @@ use cedar_local_agent::public::{
 use crate::private::sources::schema::core::VerifiedPermissionsSchemaSource;
 use crate::private::sources::schema::error::SchemaException;
 use crate::private::sources::Read;
-use crate::private::types::policy_store_filter::PolicyStoreFilter;
 use crate::private::types::policy_store_id::PolicyStoreId;
 
 /// `ProviderError` can occur during construction of the `EntityProvider`
@@ -85,26 +85,10 @@ impl EntityProvider {
         policy_store_id: String,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        Self::from_client_with_filters(policy_store_id, None, verified_permissions_client)
-    }
-
-    /// The `from_client_with_filters` provides a useful method for building the Amazon Verified Permissions
-    /// `EntityProvider`, with additional filters constraining the set of policies managed.
-    ///
-    /// # Errors
-    ///
-    /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
-    /// applicable data on initialization.
-    #[instrument(skip(verified_permissions_client), err(Debug))]
-    pub fn from_client_with_filters(
-        policy_store_id: String,
-        policy_store_filters: Option<PolicyStoreFilter>,
-        verified_permissions_client: Client,
-    ) -> Result<Self, ProviderError> {
         Self::new(
             ConfigBuilder::default()
                 .policy_store_id(
-                    PolicyStoreId::from(policy_store_id).with_filters(policy_store_filters),
+                    PolicyStoreId::from(policy_store_id),
                 )
                 .schema_source(VerifiedPermissionsSchemaSource::from(
                     verified_permissions_client,
@@ -113,6 +97,61 @@ impl EntityProvider {
         )
     }
 
+    /// The `from_client_with_filters` provides a useful method for building the Amazon Verified Permissions
+    /// `EntityProvider`, with additional filters constraining the set of policies managed, expressed as
+    /// AWS CLI shorthand
+    ///
+    /// # Errors
+    ///
+    /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
+    /// applicable data on initialization.
+    #[instrument(skip(verified_permissions_client), err(Debug))]
+    pub fn from_client_with_cli_filters<F: AsRef<str> + Debug>(
+        policy_store_id: String,
+        policy_store_filters: F,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
+        Self::new(
+            ConfigBuilder::default()
+                .policy_store_id(
+                    PolicyStoreId::from(policy_store_id)
+                        .with_cli_filters(policy_store_filters)
+                        .map_err(|e|ProviderError::Configuration(e.to_string()))?,
+                )
+                .schema_source(VerifiedPermissionsSchemaSource::from(
+                    verified_permissions_client,
+                ))
+                .build()?,
+        )
+    }
+
+    /// The `from_client_with_filters` provides a useful method for building the Amazon Verified Permissions
+    /// `EntityProvider`, with additional filters constraining the set of policies managed, expressed as
+    /// JSON
+    ///
+    /// # Errors
+    ///
+    /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
+    /// applicable data on initialization.
+    #[instrument(skip(verified_permissions_client), err(Debug))]
+    pub fn from_client_with_json_filters<F: AsRef<str> + Debug>(
+        policy_store_id: String,
+        policy_store_filters: F,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
+        Self::new(
+            ConfigBuilder::default()
+                .policy_store_id(
+                    PolicyStoreId::from(policy_store_id)
+                        .with_json_filters(policy_store_filters)
+                        .map_err(|e|ProviderError::Configuration(e.to_string()))?,
+                )
+                .schema_source(VerifiedPermissionsSchemaSource::from(
+                    verified_permissions_client,
+                ))
+                .build()?,
+        )
+    }
     #[instrument(skip(config), err(Debug))]
     fn new(config: Config) -> Result<Self, ProviderError> {
         let Config {

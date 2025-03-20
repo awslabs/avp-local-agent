@@ -1,6 +1,7 @@
 //! Provides an Amazon Verified Permissions Policy Set Provider!
 use std::str::FromStr;
 use std::sync::Arc;
+use std::fmt::Debug;
 
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
@@ -21,9 +22,7 @@ use crate::private::sources::policy::error::PolicySourceException;
 use crate::private::sources::template::core::{TemplateSource, VerifiedPermissionsTemplateSource};
 use crate::private::sources::template::error::TemplateSourceException;
 use crate::private::translator::avp_to_cedar::Policy;
-use crate::private::types::policy_store_filter::PolicyStoreFilter;
 use crate::private::types::policy_store_id::PolicyStoreId;
-
 
 /// `ProviderError` thrown by the constructor of the provider
 #[derive(Error, Debug)]
@@ -99,26 +98,67 @@ impl PolicySetProvider {
         policy_store_id: String,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        Self::from_client_with_filters(policy_store_id, None, verified_permissions_client)
+        Self::new(
+            ConfigBuilder::default()
+                .policy_store_id(
+                    PolicyStoreId::from(policy_store_id),
+                )
+                .policy_source(VerifiedPermissionsPolicySource::from(
+                    verified_permissions_client.clone(),
+                ))
+                .template_source(VerifiedPermissionsTemplateSource::from(
+                    verified_permissions_client,
+                ))
+                .build()?,
+        )
     }
 
     /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
-    /// client and policy store id with additional policy filtering
+    /// client and policy store id with additional policy filtering, expressed as
+    /// AWS CLI shorthand
     ///
     /// # Errors
     ///
     /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
     /// applicable data on initialization.
     #[instrument(skip(verified_permissions_client), err(Debug))]
-    pub fn from_client_with_filters(
+    pub fn from_client_with_cli_filters<F: AsRef<str> + Debug>(
         policy_store_id: String,
-        policy_store_filters: Option<PolicyStoreFilter>,
+        policy_store_filters: F,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
         Self::new(
             ConfigBuilder::default()
                 .policy_store_id(
-                    PolicyStoreId::from(policy_store_id).with_filters(policy_store_filters),
+                    PolicyStoreId::from(policy_store_id).with_cli_filters(policy_store_filters)?,
+                )
+                .policy_source(VerifiedPermissionsPolicySource::from(
+                    verified_permissions_client.clone(),
+                ))
+                .template_source(VerifiedPermissionsTemplateSource::from(
+                    verified_permissions_client,
+                ))
+                .build()?,
+        )
+    }
+
+    /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
+    /// client and policy store id with additional policy filtering, expressed as JSON
+    ///
+    /// # Errors
+    ///
+    /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
+    /// applicable data on initialization.
+    #[instrument(skip(verified_permissions_client), err(Debug))]
+    pub fn from_client_with_json_filters<F: AsRef<str> + Debug>(
+        policy_store_id: String,
+        policy_store_filters: F,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
+        Self::new(
+            ConfigBuilder::default()
+                .policy_store_id(
+                    PolicyStoreId::from(policy_store_id).with_json_filters(policy_store_filters)?,
                 )
                 .policy_source(VerifiedPermissionsPolicySource::from(
                     verified_permissions_client.clone(),
