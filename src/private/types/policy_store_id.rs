@@ -45,7 +45,7 @@ impl PolicyStoreId {
 
 #[cfg(test)]
 mod tests {
-    use crate::{private::types::policy_store_id::PolicyStoreId, public::PolicyStoreFilter};
+    use crate::private::types::{policy_store_filter::PolicyStoreFilter, policy_store_id::PolicyStoreId};
     use std::collections::HashMap;
 
     #[test]
