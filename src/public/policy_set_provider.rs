@@ -21,9 +21,9 @@ use crate::private::sources::policy::error::PolicySourceException;
 use crate::private::sources::template::core::{TemplateSource, VerifiedPermissionsTemplateSource};
 use crate::private::sources::template::error::TemplateSourceException;
 use crate::private::translator::avp_to_cedar::Policy;
+use crate::private::types::policy_store_filter::PolicyStoreFilter;
 use crate::private::types::policy_store_id::PolicyStoreId;
 
-use super::PolicyStoreFilter;
 
 /// `ProviderError` thrown by the constructor of the provider
 #[derive(Error, Debug)]
