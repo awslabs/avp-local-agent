@@ -49,12 +49,9 @@ impl PolicyStoreId {
         Ok(self)
     }
 
-    pub fn with_filters(mut self, filters: Value) -> Result<Self,ProviderError> {
-        if self.1.is_some() {
-            Err(ProviderError::Configuration("PolicyStoreFilter has already been set".into()))?;
-        }
-        self.1 = Some(PolicyStoreFilter::from_json_value(filters).map_err(|e|ProviderError::Configuration(e.to_string()))?);
-        Ok(self)
+    pub fn with_filters(mut self, filters: Option<PolicyStoreFilter>) -> Self {
+        self.1 = filters;
+        self
     }
 
     pub fn id(&self) -> &str {
