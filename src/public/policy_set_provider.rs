@@ -22,6 +22,7 @@ use crate::private::sources::policy::error::PolicySourceException;
 use crate::private::sources::template::core::{TemplateSource, VerifiedPermissionsTemplateSource};
 use crate::private::sources::template::error::TemplateSourceException;
 use crate::private::translator::avp_to_cedar::Policy;
+use crate::private::types::policy_store_filter::PolicyStoreFilter;
 use crate::private::types::policy_store_id::PolicyStoreId;
 
 /// `ProviderError` thrown by the constructor of the provider
@@ -86,6 +87,27 @@ pub struct PolicySetProvider {
 }
 
 impl PolicySetProvider {
+
+    #[instrument(skip(verified_permissions_client), err(Debug))]
+    fn from_all(
+        policy_store_id: String,
+        policy_store_filters: Option<PolicyStoreFilter>,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
+        Self::new(
+            ConfigBuilder::default()
+                .policy_store_id(
+                    PolicyStoreId::from(policy_store_id).with_filters(policy_store_filters),
+                )
+                .policy_source(VerifiedPermissionsPolicySource::from(
+                    verified_permissions_client.clone(),
+                ))
+                .template_source(VerifiedPermissionsTemplateSource::from(
+                    verified_permissions_client,
+                ))
+                .build()?,
+        )
+    }
     /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
     /// client and policy store id
     ///
@@ -98,20 +120,8 @@ impl PolicySetProvider {
         policy_store_id: String,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        Self::new(
-            ConfigBuilder::default()
-                .policy_store_id(
-                    PolicyStoreId::from(policy_store_id),
-                )
-                .policy_source(VerifiedPermissionsPolicySource::from(
-                    verified_permissions_client.clone(),
-                ))
-                .template_source(VerifiedPermissionsTemplateSource::from(
-                    verified_permissions_client,
-                ))
-                .build()?,
-        )
-    }
+        Self::from_all(policy_store_id, None, verified_permissions_client)
+   }
 
     /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
     /// client and policy store id with additional policy filtering, expressed as
@@ -127,19 +137,11 @@ impl PolicySetProvider {
         policy_store_filters: F,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        Self::new(
-            ConfigBuilder::default()
-                .policy_store_id(
-                    PolicyStoreId::from(policy_store_id).with_cli_filters(policy_store_filters)?,
-                )
-                .policy_source(VerifiedPermissionsPolicySource::from(
-                    verified_permissions_client.clone(),
-                ))
-                .template_source(VerifiedPermissionsTemplateSource::from(
-                    verified_permissions_client,
-                ))
-                .build()?,
-        )
+        Self::from_all(policy_store_id, 
+            Some(PolicyStoreFilter::from_cli_str(policy_store_filters.as_ref())
+                .map_err(|e|ProviderError::Configuration(e.to_string()))?
+            ), 
+            verified_permissions_client)
     }
 
     /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
@@ -155,19 +157,12 @@ impl PolicySetProvider {
         policy_store_filters: F,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        Self::new(
-            ConfigBuilder::default()
-                .policy_store_id(
-                    PolicyStoreId::from(policy_store_id).with_json_filters(policy_store_filters)?,
-                )
-                .policy_source(VerifiedPermissionsPolicySource::from(
-                    verified_permissions_client.clone(),
-                ))
-                .template_source(VerifiedPermissionsTemplateSource::from(
-                    verified_permissions_client,
-                ))
-                .build()?,
-        )
+        Self::from_all(policy_store_id, 
+            Some(PolicyStoreFilter::from_json_str(policy_store_filters.as_ref())
+                .map_err(|e|ProviderError::Configuration(e.to_string()))?
+        ), 
+
+            verified_permissions_client)
     }
 
     #[instrument(skip(config), err(Debug))]
