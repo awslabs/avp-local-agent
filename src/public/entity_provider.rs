@@ -23,7 +23,7 @@ use crate::private::sources::schema::core::VerifiedPermissionsSchemaSource;
 use crate::private::sources::schema::error::SchemaException;
 use crate::private::sources::Read;
 use crate::private::types::policy_store_filter::PolicyStoreFilter;
-use crate::private::types::policy_store_id::{self, PolicyStoreId};
+use crate::private::types::policy_store_id::PolicyStoreId;
 
 /// `ProviderError` can occur during construction of the `EntityProvider`
 #[derive(Error, Debug)]

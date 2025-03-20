@@ -66,7 +66,6 @@ mod test {
     };
     use crate::private::sources::policy::loader::{ListPolicies, Load};
     use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
-    use crate::private::types::policy_store_filter::PolicyStoreFilter;
     use crate::private::types::{policy_id::PolicyId, policy_store_id::PolicyStoreId};
 
     #[tokio::test]

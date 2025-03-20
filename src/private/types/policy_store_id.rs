@@ -2,8 +2,6 @@
 
 use std::fmt;
 
-use serde_json::Value;
-
 use crate::public::policy_set_provider::ProviderError;
 
 use super::policy_store_filter::PolicyStoreFilter;
@@ -33,6 +31,7 @@ impl From<String> for PolicyStoreId {
 }
 
 impl PolicyStoreId {
+    #[allow(dead_code)]
     pub fn with_cli_filters<T: AsRef<str>>(mut self, filters: T) -> Result<Self, ProviderError> {
         if self.1.is_some() {
             Err(ProviderError::Configuration(
@@ -46,6 +45,7 @@ impl PolicyStoreId {
         Ok(self)
     }
 
+    #[allow(dead_code)]
     pub fn with_json_filters<T: AsRef<str>>(mut self, filters: T) -> Result<Self, ProviderError> {
         if self.1.is_some() {
             Err(ProviderError::Configuration(
@@ -75,9 +75,7 @@ impl PolicyStoreId {
 
 #[cfg(test)]
 mod tests {
-    use crate::private::types::{
-        policy_store_filter::PolicyStoreFilter, policy_store_id::PolicyStoreId,
-    };
+    use crate::private::types::policy_store_id::PolicyStoreId;
     use std::collections::HashMap;
 
     #[test]
