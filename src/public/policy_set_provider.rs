@@ -1,7 +1,7 @@
 //! Provides an Amazon Verified Permissions Policy Set Provider!
+use std::fmt::Debug;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::fmt::Debug;
 
 use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::Client;
@@ -87,7 +87,6 @@ pub struct PolicySetProvider {
 }
 
 impl PolicySetProvider {
-
     #[instrument(skip(verified_permissions_client), err(Debug))]
     fn from_all(
         policy_store_id: String,
@@ -121,7 +120,7 @@ impl PolicySetProvider {
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
         Self::from_all(policy_store_id, None, verified_permissions_client)
-   }
+    }
 
     /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
     /// client and policy store id with additional policy filtering, expressed as
@@ -137,11 +136,14 @@ impl PolicySetProvider {
         policy_store_filters: F,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        Self::from_all(policy_store_id, 
-            Some(PolicyStoreFilter::from_cli_str(policy_store_filters.as_ref())
-                .map_err(|e|ProviderError::Configuration(e.to_string()))?
-            ), 
-            verified_permissions_client)
+        Self::from_all(
+            policy_store_id,
+            Some(
+                PolicyStoreFilter::from_cli_str(policy_store_filters.as_ref())
+                    .map_err(|e| ProviderError::Configuration(e.to_string()))?,
+            ),
+            verified_permissions_client,
+        )
     }
 
     /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
@@ -157,12 +159,14 @@ impl PolicySetProvider {
         policy_store_filters: F,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        Self::from_all(policy_store_id, 
-            Some(PolicyStoreFilter::from_json_str(policy_store_filters.as_ref())
-                .map_err(|e|ProviderError::Configuration(e.to_string()))?
-        ), 
-
-            verified_permissions_client)
+        Self::from_all(
+            policy_store_id,
+            Some(
+                PolicyStoreFilter::from_json_str(policy_store_filters.as_ref())
+                    .map_err(|e| ProviderError::Configuration(e.to_string()))?,
+            ),
+            verified_permissions_client,
+        )
     }
 
     #[instrument(skip(config), err(Debug))]

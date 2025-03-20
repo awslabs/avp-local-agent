@@ -207,9 +207,9 @@ mod test {
     }
     #[tokio::test]
     async fn list_policies_with_filter_200() {
-        let policy_store_id =
-            PolicyStoreId::from("mockPolicyStoreId".to_string()).with_cli_filters("policyTemplateId=mockPolicyTemplateId")
-                .expect("filter should parse correctly");
+        let policy_store_id = PolicyStoreId::from("mockPolicyStoreId".to_string())
+            .with_cli_filters("policyTemplateId=mockPolicyTemplateId")
+            .expect("filter should parse correctly");
         let policy_id = PolicyId("mockPolicyId".to_string());
         let entity_type = "mockEntityType";
         let entity_id = "mockEntityId";

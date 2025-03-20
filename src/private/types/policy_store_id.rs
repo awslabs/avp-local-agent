@@ -33,19 +33,29 @@ impl From<String> for PolicyStoreId {
 }
 
 impl PolicyStoreId {
-    pub fn with_cli_filters<T: AsRef<str>>(mut self, filters: T) -> Result<Self,ProviderError> {
+    pub fn with_cli_filters<T: AsRef<str>>(mut self, filters: T) -> Result<Self, ProviderError> {
         if self.1.is_some() {
-            Err(ProviderError::Configuration("PolicyStoreFilter has already been set".into()))?;
+            Err(ProviderError::Configuration(
+                "PolicyStoreFilter has already been set".into(),
+            ))?;
         }
-        self.1 = Some(PolicyStoreFilter::from_cli_str(filters.as_ref()).map_err(|e|ProviderError::Configuration(e.to_string()))?);
+        self.1 = Some(
+            PolicyStoreFilter::from_cli_str(filters.as_ref())
+                .map_err(|e| ProviderError::Configuration(e.to_string()))?,
+        );
         Ok(self)
     }
 
-    pub fn with_json_filters<T: AsRef<str>>(mut self, filters: T) -> Result<Self,ProviderError> {
+    pub fn with_json_filters<T: AsRef<str>>(mut self, filters: T) -> Result<Self, ProviderError> {
         if self.1.is_some() {
-            Err(ProviderError::Configuration("PolicyStoreFilter has already been set".into()))?;
+            Err(ProviderError::Configuration(
+                "PolicyStoreFilter has already been set".into(),
+            ))?;
         }
-        self.1 = Some(PolicyStoreFilter::from_json_str(filters.as_ref()).map_err(|e|ProviderError::Configuration(e.to_string()))?);
+        self.1 = Some(
+            PolicyStoreFilter::from_json_str(filters.as_ref())
+                .map_err(|e| ProviderError::Configuration(e.to_string()))?,
+        );
         Ok(self)
     }
 
@@ -65,7 +75,9 @@ impl PolicyStoreId {
 
 #[cfg(test)]
 mod tests {
-    use crate::private::types::{policy_store_filter::PolicyStoreFilter, policy_store_id::PolicyStoreId};
+    use crate::private::types::{
+        policy_store_filter::PolicyStoreFilter, policy_store_id::PolicyStoreId,
+    };
     use std::collections::HashMap;
 
     #[test]
@@ -117,7 +129,8 @@ mod tests {
 
     #[test]
     fn policy_store_id_with_filters_formats_as_expected() {
-        let id = PolicyStoreId::from("id".to_string()).with_cli_filters("policyTemplateId=mockPolicyTemplate")
+        let id = PolicyStoreId::from("id".to_string())
+            .with_cli_filters("policyTemplateId=mockPolicyTemplate")
             .expect("CLI filter string should parse correctly");
         assert_eq!(
             id.to_string(),
@@ -128,7 +141,8 @@ mod tests {
     #[test]
     fn policy_store_id_with_filters_can_be_inserted_into_hashmap() {
         let mut map: HashMap<PolicyStoreId, i32> = HashMap::new();
-        let id = PolicyStoreId::from("id".to_string()).with_cli_filters("policyTemplateId=mockPolicyTemplate")
+        let id = PolicyStoreId::from("id".to_string())
+            .with_cli_filters("policyTemplateId=mockPolicyTemplate")
             .expect("CLI filter string should parse correctly");
         let p2 = id.clone();
         assert_eq!(map.insert(id, 1), None);
@@ -137,18 +151,21 @@ mod tests {
 
     #[test]
     fn policy_store_id_with_filters_is_cloneable() {
-        let id = PolicyStoreId::from("id".to_string()).with_cli_filters("policyTemplateId=mockPolicyTemplate")
+        let id = PolicyStoreId::from("id".to_string())
+            .with_cli_filters("policyTemplateId=mockPolicyTemplate")
             .expect("CLI filter string should parse correctly");
         assert_eq!(id.clone(), id);
     }
 
     #[test]
     fn policy_store_id_with_filters_is_equal_to_another_id_with_same_value() {
-        let id = PolicyStoreId::from("id".to_string()).with_cli_filters("policyTemplateId=mockPolicyTemplate")
+        let id = PolicyStoreId::from("id".to_string())
+            .with_cli_filters("policyTemplateId=mockPolicyTemplate")
             .expect("CLI filter string should parse correctly");
-        let id2 = PolicyStoreId::from("id".to_string()).with_cli_filters("policyTemplateId=mockPolicyTemplate")
+        let id2 = PolicyStoreId::from("id".to_string())
+            .with_cli_filters("policyTemplateId=mockPolicyTemplate")
             .expect("CLI filter string should parse correctly");
-    assert!(id.eq(&id2));
+        assert!(id.eq(&id2));
     }
 
     #[test]

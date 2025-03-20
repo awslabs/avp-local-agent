@@ -59,7 +59,8 @@ fn structure(input: &str) -> IResult<&str, Vec<(&str, Value<'_>)>> {
             acc.push(item);
             acc
         },
-    ).parse(input)
+    )
+    .parse(input)
 }
 
 /// Escaped strings (those inside quotes) MAY have escaped backslashes and embedded quotes
@@ -80,7 +81,8 @@ fn quoted_value(input: &str) -> IResult<&str, Value<'_>> {
             terminated(tag(r#"""#), multispace0),
         ),
         Value::MaybeEscaped,
-    ).parse(input)
+    )
+    .parse(input)
 }
 
 /// Simple values are unquoted values that are terminated by a "," or a "}"
@@ -99,7 +101,8 @@ fn struct_value(input: &str) -> IResult<&str, Value<'_>> {
     map(
         delimited(tag("{"), structure, preceded(multispace0, tag("}"))),
         Value::Struct,
-    ).parse(input)
+    )
+    .parse(input)
 }
 
 /// Values are strings or braced structures
@@ -118,7 +121,8 @@ fn property(input: &str) -> IResult<&str, (&str, Value<'_>)> {
         delimited(multispace0, property_name, multispace0),
         tag("="),
         delimited(multispace0, any_value, multispace0),
-    ).parse(input)
+    )
+    .parse(input)
 }
 
 #[cfg(test)]
