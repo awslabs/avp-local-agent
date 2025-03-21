@@ -133,15 +133,16 @@ impl PolicySetProvider {
     #[instrument(skip(verified_permissions_client), err(Debug))]
     pub fn from_client_with_cli_filters<F: AsRef<str> + Debug>(
         policy_store_id: String,
-        policy_store_filters: F,
+        policy_store_filters: Option<F>,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
         Self::from_all(
             policy_store_id,
-            Some(
-                PolicyStoreFilter::from_cli_str(policy_store_filters.as_ref())
-                    .map_err(|e| ProviderError::Configuration(e.to_string()))?,
-            ),
+            policy_store_filters.and_then(|cli|
+                Some(PolicyStoreFilter::from_cli_str(cli.as_ref())
+                    .map_err(|e| ProviderError::Configuration(e.to_string()))
+                )
+            ).transpose()?,
             verified_permissions_client,
         )
     }
@@ -156,15 +157,17 @@ impl PolicySetProvider {
     #[instrument(skip(verified_permissions_client), err(Debug))]
     pub fn from_client_with_json_filters<F: AsRef<str> + Debug>(
         policy_store_id: String,
-        policy_store_filters: F,
+        policy_store_filters: Option<F>,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
         Self::from_all(
             policy_store_id,
-            Some(
-                PolicyStoreFilter::from_json_str(policy_store_filters.as_ref())
-                    .map_err(|e| ProviderError::Configuration(e.to_string()))?,
-            ),
+            policy_store_filters.and_then(|json|
+                Some(
+                    PolicyStoreFilter::from_json_str(json.as_ref())
+                        .map_err(|e| ProviderError::Configuration(e.to_string())),
+                )
+            ).transpose()?,
             verified_permissions_client,
         )
     }
