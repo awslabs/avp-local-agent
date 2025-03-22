@@ -188,13 +188,18 @@ impl From<&PolicyStoreFilter> for SdkPolicyFilter {
 }
 
 #[derive(Error, Debug)]
+/// The errors that can be experienced when translating a policy store filter
+/// expression into the internal form used in AVP SDK invocations.
 pub enum PolicyFilterInputError {
     #[error("invalid entity reference {0} {1}: {2}")]
     InvalidEntityReference(String, String, BuildError),
+    /// A JSON expression is invalid
     #[error("JSON error: {0}")]
     JsonDeserializationError(serde_json::Error),
+    /// A CLI shorthand expression is invalid
     #[error("shorthand syntax error: {0}")]
     ShorthandParseError(String),
+    /// A CLI shorthand expression contains unsupported structures
     #[error("shorthand content error: {0}")]
     ShorthandContentError(String),
 }
