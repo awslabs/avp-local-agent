@@ -140,37 +140,8 @@ impl PolicySetProvider {
         policy_store_filters: Option<PolicySetFilter<'a>>,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        let filters = policy_store_filters.map(|f|f.try_into()).transpose()?;
-        Self::from_all(
-            policy_store_id,
-            filters,
-            verified_permissions_client,
-        )
-    }
-
-    /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
-    /// client and policy store id with additional policy filtering, expressed as JSON
-    ///
-    /// # Errors
-    ///
-    /// Can error if the builder is incorrect or if the `new` constructor fails to gather the
-    /// applicable data on initialization.
-    #[instrument(skip(verified_permissions_client), err(Debug))]
-    pub fn from_client_with_json_filters<F: AsRef<str> + Debug>(
-        policy_store_id: String,
-        policy_store_filters: Option<F>,
-        verified_permissions_client: Client,
-    ) -> Result<Self, ProviderError> {
-        Self::from_all(
-            policy_store_id,
-            policy_store_filters.and_then(|json|
-                Some(
-                    PolicyStoreFilter::from_json_str(json.as_ref())
-                        .map_err(|e| ProviderError::Configuration(e.to_string())),
-                )
-            ).transpose()?,
-            verified_permissions_client,
-        )
+        let filters = policy_store_filters.map(TryInto::try_into).transpose()?;
+        Self::from_all(policy_store_id, filters, verified_permissions_client)
     }
 
     #[instrument(skip(config), err(Debug))]
