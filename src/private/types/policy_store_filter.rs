@@ -108,6 +108,20 @@ pub struct PolicyStoreFilter {
     policy_template_id: Option<String>,
 }
 
+impl PolicyStoreFilter {
+    fn validate(self) -> Result<Self, PolicyFilterInputError> {
+        if self.policy_template_id.is_none()
+            && self.principal.is_none()
+            && self.resource.is_none()
+            && self.policy_type.is_none()
+        {
+            Err(PolicyFilterInputError::EmptyFilter)
+        } else {
+            Ok(self)
+        }
+    }
+}
+
 /// Formats the `PolicyStoreFilter` as CLI shorthand using the given formatter.
 impl fmt::Display for PolicyStoreFilter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -152,6 +166,7 @@ impl PolicyStoreFilter {
         serde_json::from_value::<PolicyStoreFilterInput>(json)
             .map_err(PolicyFilterInputError::JsonDeserializationError)
             .and_then(Self::try_from)
+            .and_then(Self::validate)
     }
     /// Construct from a JSON string
     ///
@@ -162,6 +177,7 @@ impl PolicyStoreFilter {
         serde_json::from_str::<PolicyStoreFilterInput>(json)
             .map_err(PolicyFilterInputError::JsonDeserializationError)
             .and_then(Self::try_from)
+            .and_then(Self::validate)
     }
     /// Construct from a CLI shorthand string
     ///
@@ -169,7 +185,9 @@ impl PolicyStoreFilter {
     /// If the input string fails to parse into valid structures, or the resultant
     /// parsed data does not contain expected structural information
     pub fn from_cli_str(s: &str) -> Result<Self, PolicyFilterInputError> {
-        input::PolicyStoreFilterInput::from_str(s).and_then(Self::try_from)
+        input::PolicyStoreFilterInput::from_str(s)
+            .and_then(Self::try_from)
+            .and_then(Self::validate)
     }
 }
 
@@ -193,6 +211,9 @@ impl From<&PolicyStoreFilter> for SdkPolicyFilter {
 pub enum PolicyFilterInputError {
     #[error("invalid entity reference {0} {1}: {2}")]
     InvalidEntityReference(String, String, BuildError),
+    /// A JSON expression is invalid
+    #[error("Empty filter")]
+    EmptyFilter,
     /// A JSON expression is invalid
     #[error("JSON error: {0}")]
     JsonDeserializationError(serde_json::Error),
