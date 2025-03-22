@@ -72,7 +72,7 @@ pub struct EntityProvider {
 }
 
 /// Implementation for the Entity Provider
-// Note that EntityProvider does not use policy store filtering 
+// Note that EntityProvider does not use policy store filtering
 impl EntityProvider {
     /// The `from_client` provides a useful method for building the Amazon Verified Permissions
     /// `EntityProvider`.
@@ -92,8 +92,8 @@ impl EntityProvider {
                 .schema_source(VerifiedPermissionsSchemaSource::from(
                     verified_permissions_client,
                 ))
-                .build()?
-            )
+                .build()?,
+        )
     }
 
     #[instrument(skip(config), err(Debug))]
