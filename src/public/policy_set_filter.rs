@@ -25,3 +25,76 @@ impl TryInto<PolicyStoreFilter> for PolicySetFilter<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::private::types::policy_store_filter::PolicyFilterInputError;
+
+    use super::*;
+
+    #[test]
+    fn test_cli() {
+        let pf = PolicySetFilter::Cli("policyTemplateId=12345");
+        let p: PolicyStoreFilter = pf
+            .try_into()
+            .unwrap();
+        assert_eq!(p.to_string(), "policyTemplateId=12345");
+    }
+    #[test]
+    fn test_json() {
+        let p: PolicyStoreFilter = PolicySetFilter::Json("{\"policyTemplateId\":\"12345\"}")
+            .try_into()
+            .unwrap();
+        assert_eq!(p.to_string(), "policyTemplateId=12345");
+    }
+    #[test]
+    fn test_value() {
+        let p: PolicyStoreFilter = PolicySetFilter::Value(
+            serde_json::from_str("{\"policyTemplateId\":\"12345\"}").unwrap(),
+        )
+        .try_into()
+        .unwrap();
+        assert_eq!(p.to_string(), "policyTemplateId=12345");
+    }
+    #[test]
+    fn test_cli_syntax_error() {
+        let p: Result<PolicyStoreFilter, _> = PolicySetFilter::Cli("policyTemplateId=").try_into();
+        let e = p.unwrap_err();
+        assert!(matches!(
+            e,
+            ProviderError::PolicyFilterInputError(PolicyFilterInputError::ShorthandParseError(_))
+        ));
+    }
+    #[test]
+    fn test_cli_content_error() {
+        let p: Result<PolicyStoreFilter, _> =
+            PolicySetFilter::Cli("policyTemplate=1232456").try_into();
+        let e = p.unwrap_err();
+        assert!(matches!(
+            e,
+            ProviderError::PolicyFilterInputError(PolicyFilterInputError::ShorthandContentError(_))
+        ));
+    }
+    #[test]
+    fn test_json_syntax_error() {
+        let p: Result<PolicyStoreFilter, _> =
+            PolicySetFilter::Json("{\"policyTemplateId\":\"12345}").try_into();
+        let e = p.unwrap_err();
+        assert!(matches!(
+            e,
+            ProviderError::PolicyFilterInputError(
+                PolicyFilterInputError::JsonDeserializationError(_)
+            )
+        ));
+    }
+    #[test]
+    fn test_json_content_error() {
+        let p: Result<PolicyStoreFilter, _> =
+            PolicySetFilter::Json("{\"policyTemplate\":\"12345\"}").try_into();
+        let e = p.unwrap_err();
+        assert!(matches!(
+            e,
+            ProviderError::PolicyFilterInputError(PolicyFilterInputError::EmptyFilter)
+        ));
+    }
+}
