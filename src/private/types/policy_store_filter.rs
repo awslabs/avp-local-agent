@@ -1,5 +1,5 @@
 /// Structures necessary to represent `PolicyFilter` as part of a
-/// policy source ID (i.e. `PolicyStoreId`)
+/// policy source ID (i.e. `PolicySelector`)
 ///
 /// We can't use the native SDK representations because they are non-exhaustive
 /// and so can't implement Hash or Eq (required for things that are keys).

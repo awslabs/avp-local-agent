@@ -35,9 +35,7 @@ mod tests {
     #[test]
     fn test_cli() {
         let pf = PolicySetFilter::Cli("policyTemplateId=12345");
-        let p: PolicyStoreFilter = pf
-            .try_into()
-            .unwrap();
+        let p: PolicyStoreFilter = pf.try_into().unwrap();
         assert_eq!(p.to_string(), "policyTemplateId=12345");
     }
     #[test]
