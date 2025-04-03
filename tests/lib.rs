@@ -8,16 +8,16 @@ mod test {
         CreatePolicyStoreError, CreatePolicyStoreOutput,
     };
     use aws_sdk_verifiedpermissions::Client;
+    use backon::{BackoffBuilder, ExponentialBuilder, Retryable};
     use std::fs::File;
     use std::sync::Arc;
-    use std::time::Duration;
+    use std::time::Instant;
 
     use aws_sdk_verifiedpermissions::types::{
         EntityIdentifier, PolicyDefinition, StaticPolicyDefinition, TemplateLinkedPolicyDefinition,
         ValidationMode, ValidationSettings,
     };
     use aws_types::region::Region;
-    use backoff::ExponentialBackoff;
     use cedar_policy::{Context, Decision, Entities, Request, Schema};
 
     use avp_local_agent::public::client::verified_permissions_default_credentials;
@@ -236,7 +236,7 @@ mod test {
         user: &String,
         box_id: &String,
     ) -> Result<CreatePolicyOutput, CreatePolicyError> {
-        let backoff_strategy = ExponentialBackoff::default();
+        let backoff_strategy = ExponentialBuilder::new().build();
         let add_policy_operation = || async {
             let result = client
                 .create_policy()
@@ -266,16 +266,16 @@ mod test {
                 .map_err(SdkError::into_service_error)?;
             Ok(result)
         };
-
-        backoff::future::retry(backoff_strategy, add_policy_operation).await
+        add_policy_operation.retry(backoff_strategy).await
     }
 
     async fn create_policy_store(
         client: &Client,
     ) -> Result<CreatePolicyStoreOutput, CreatePolicyStoreError> {
-        let backoff_strategy = ExponentialBackoff::default();
+        let backoff_strategy = ExponentialBuilder::new().build();
+        let start = Instant::now();
         let create_policy_store_op = || async {
-            if backoff_strategy.get_elapsed_time() >= Duration::from_secs(15) {
+            if start.elapsed().as_secs() > 15 {
                 panic!("\nError contacting AVP! Try refreshing your token?\n");
             }
 
@@ -292,6 +292,6 @@ mod test {
                 .map_err(SdkError::into_service_error)?;
             Ok(result)
         };
-        backoff::future::retry(backoff_strategy.clone(), create_policy_store_op).await
+        create_policy_store_op.retry(backoff_strategy).await
     }
 }
