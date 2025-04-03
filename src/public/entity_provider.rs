@@ -22,7 +22,7 @@ use cedar_local_agent::public::{
 use crate::private::sources::schema::core::VerifiedPermissionsSchemaSource;
 use crate::private::sources::schema::error::SchemaException;
 use crate::private::sources::Read;
-use crate::private::types::policy_store_id::PolicyStoreId;
+use crate::private::types::policy_selector::PolicySelector;
 
 /// `ProviderError` can occur during construction of the `EntityProvider`
 #[derive(Error, Debug)]
@@ -57,14 +57,14 @@ struct Config {
     /// Retrieves Schema from Amazon Verified Permissions
     pub schema_source: VerifiedPermissionsSchemaSource,
     /// The policy store id to retrieve the schema for
-    pub policy_store_id: PolicyStoreId,
+    pub policy_selector: PolicySelector,
 }
 
 /// `EntityProvider` structure implements the `SimpleEntityProvider` trait.
 #[derive(Debug)]
 pub struct EntityProvider {
     /// Entities path, stored to allow refreshing from disk.
-    policy_store_id: PolicyStoreId,
+    policy_selector: PolicySelector,
     /// Schema Source
     schema_source: Arc<Mutex<VerifiedPermissionsSchemaSource>>,
     /// Entities can be updated through a back ground thread.
@@ -88,7 +88,7 @@ impl EntityProvider {
     ) -> Result<Self, ProviderError> {
         Self::new(
             ConfigBuilder::default()
-                .policy_store_id(PolicyStoreId::from(policy_store_id))
+                .policy_selector(PolicySelector::from(policy_store_id))
                 .schema_source(VerifiedPermissionsSchemaSource::from(
                     verified_permissions_client,
                 ))
@@ -99,13 +99,13 @@ impl EntityProvider {
     #[instrument(skip(config), err(Debug))]
     fn new(config: Config) -> Result<Self, ProviderError> {
         let Config {
-            policy_store_id,
+            policy_selector,
             schema_source,
         } = config;
 
         let schema_source = Arc::new(Mutex::new(schema_source));
         let schema_source_ref = schema_source.clone();
-        let policy_store_id_clone = policy_store_id.clone();
+        let policy_store_id_clone = policy_selector.clone();
         let fetch_schema_result = task::block_in_place(move || {
             Handle::current().block_on(async move {
                 schema_source_ref
@@ -122,7 +122,7 @@ impl EntityProvider {
                 let schema = Schema::from_str(&get_schema_output.schema)?;
 
                 Ok(Self {
-                    policy_store_id,
+                    policy_selector,
                     schema_source,
                     entities: RwLock::new(Arc::new(schema.action_entities()?)),
                 })
@@ -136,7 +136,7 @@ impl EntityProvider {
                     Err(ProviderError::RetrieveException(error))
                 }
                 SchemaException::ResourceNotFound(_) => Ok(Self {
-                    policy_store_id,
+                    policy_selector,
                     schema_source,
                     entities: RwLock::new(Arc::new(Entities::empty())),
                 }),
@@ -162,7 +162,7 @@ impl UpdateProviderData for EntityProvider {
             .lock()
             .await
             .reader
-            .read(self.policy_store_id.clone())
+            .read(self.policy_selector.clone())
             .await;
 
         let entities = match fetch_schema_result {

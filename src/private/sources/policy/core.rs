@@ -18,7 +18,7 @@ use crate::private::sources::retry::BackoffStrategy;
 use crate::private::sources::{Cache, CacheChange, Load, Read};
 use crate::private::translator::avp_to_cedar::Policy;
 use crate::private::types::policy_id::PolicyId;
-use crate::private::types::policy_store_id::PolicyStoreId;
+use crate::private::types::policy_selector::PolicySelector;
 
 /// This wraps required AWS Verified Permissions models from `GetPolicyOutput` that need be
 /// translated to Cedar models to build the Policy Set
@@ -41,7 +41,7 @@ pub trait PolicySource {
     /// `policy_id`s that have been modified.
     async fn fetch(
         &mut self,
-        policy_store_id: PolicyStoreId,
+        policy_selector: PolicySelector,
     ) -> Result<HashMap<PolicyId, Policy>, Self::Error>;
 }
 
@@ -78,20 +78,20 @@ impl PolicySource for VerifiedPermissionsPolicySource {
     #[instrument(skip(self), err(Debug))]
     async fn fetch(
         &mut self,
-        policy_store_id: PolicyStoreId,
+        policy_selector: PolicySelector,
     ) -> Result<HashMap<PolicyId, Policy>, Self::Error> {
         let mut policy_definitions_map = HashMap::new();
 
         // Load policies and update policy cache
         let policy_cache_diff_map = self
             .cache
-            .get_pending_updates(&self.loader.load(policy_store_id.clone()).await?);
+            .get_pending_updates(&self.loader.load(policy_selector.clone()).await?);
         for (policy_id, cache_change) in policy_cache_diff_map {
             if cache_change == CacheChange::Deleted {
                 self.cache.remove(&policy_id);
                 debug!("Removed Policy from Cache: policy_id={policy_id:?}");
             } else {
-                let read_input = GetPolicyInput::new(policy_store_id.clone(), policy_id.clone());
+                let read_input = GetPolicyInput::new(policy_selector.clone(), policy_id.clone());
                 let policy_output = self.reader.read(read_input).await?;
 
                 self.cache.put(policy_id.clone(), policy_output);
@@ -136,7 +136,7 @@ pub mod test {
     use crate::private::sources::Cache;
     use crate::private::translator::avp_to_cedar::Policy;
     use crate::private::types::policy_id::PolicyId;
-    use crate::private::types::policy_store_id::PolicyStoreId;
+    use crate::private::types::policy_selector::PolicySelector;
     use crate::private::types::template_id::TemplateId;
 
     const ENTITY_TYPE: &str = "mockEntityType";
@@ -243,7 +243,7 @@ pub mod test {
 
     pub fn build_policy_item(
         policy_id: &PolicyId,
-        policy_store_id: &PolicyStoreId,
+        policy_selector: &PolicySelector,
         policy_type: Option<String>,
         principal: Option<EntityIdentifierRaw>,
         resource: Option<EntityIdentifierRaw>,
@@ -251,7 +251,7 @@ pub mod test {
     ) -> PolicyItemRaw {
         PolicyItemRaw {
             policy_id: policy_id.to_string(),
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             policy_type,
             principal,
             resource,
@@ -328,7 +328,7 @@ pub mod test {
 
     pub fn build_get_policy_response(
         policy_id: &PolicyId,
-        policy_store_id: &PolicyStoreId,
+        policy_selector: &PolicySelector,
         policy_type: &str,
         principal: EntityIdentifierRaw,
         resource: EntityIdentifierRaw,
@@ -336,7 +336,7 @@ pub mod test {
     ) -> GetPolicyResponse {
         GetPolicyResponse {
             policy_id: Some(policy_id.to_string()),
-            policy_store_id: Some(policy_store_id.to_string()),
+            policy_store_id: Some(policy_selector.id().to_string()),
             policy_type: Some(policy_type.to_string()),
             principal: Some(principal),
             resource: Some(resource),
@@ -348,13 +348,13 @@ pub mod test {
 
     #[tokio::test]
     async fn test_policy_source_fetch_returns_expected_results_with_mock_client() {
-        let policy_store_id: PolicyStoreId = PolicyStoreId::from("mockPolicyStoreId".to_string());
+        let policy_selector: PolicySelector = PolicySelector::from("mockPolicyStoreId".to_string());
         let policy_id_1 = PolicyId("mockPolicyId1".to_string());
         let policy_id_2 = PolicyId("mockPolicyId2".to_string());
         let policy_type = "STATIC";
 
         let loader_request = ListPoliciesRequest {
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             next_token: None,
             max_results: 1,
             filter: None,
@@ -363,7 +363,7 @@ pub mod test {
         let loader_response = ListPoliciesResponse {
             policies: Some(vec![build_policy_item(
                 &policy_id_1,
-                &policy_store_id,
+                &policy_selector,
                 Some(policy_type.to_string()),
                 Some(build_entity_identifier(ENTITY_TYPE, ENTITY_ID)),
                 None,
@@ -374,12 +374,12 @@ pub mod test {
 
         let reader_request = GetPolicyRequest {
             policy_id: policy_id_1.to_string(),
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
         };
 
         let reader_response = build_get_policy_response(
             &policy_id_1,
-            &policy_store_id,
+            &policy_selector,
             policy_type,
             build_entity_identifier(PRINCIPAL_ENTITY_TYPE, PRINCIPAL_ENTITY_ID),
             build_entity_identifier(RESOURCE_ENTITY_TYPE, RESOURCE_ENTITY_ID),
@@ -412,7 +412,7 @@ pub mod test {
         };
 
         let deleted_output = GetPolicyOutput::builder()
-            .policy_store_id(policy_store_id.to_string())
+            .policy_store_id(policy_selector.id().to_string())
             .policy_id(policy_id_2.to_string())
             .policy_type(PolicyType::Static)
             .created_date(DateTime::from_secs(0))
@@ -432,7 +432,7 @@ pub mod test {
         let mut policy_source = VerifiedPermissionsPolicySource::from(client);
         policy_source.cache.put(policy_id_2.clone(), deleted_output);
 
-        let result = policy_source.fetch(policy_store_id).await.unwrap();
+        let result = policy_source.fetch(policy_selector).await.unwrap();
 
         assert!(!result.contains_key(&policy_id_2));
         assert_eq!(
@@ -443,7 +443,7 @@ pub mod test {
 
     #[tokio::test]
     async fn test_template_linked_policy_source_fetch_returns_expected_results_with_mock_client() {
-        let policy_store_id: PolicyStoreId = PolicyStoreId::from("mockPolicyStoreId".to_string());
+        let policy_selector: PolicySelector = PolicySelector::from("mockPolicyStoreId".to_string());
         let policy_id = PolicyId("mockPolicyId1".to_string());
         let policy_type = "TEMPLATE";
         let policy_template_id = TemplateId("mockPolicyTemplateId".to_string());
@@ -461,7 +461,7 @@ pub mod test {
             .unwrap();
 
         let loader_request = ListPoliciesRequest {
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             next_token: None,
             max_results: 1,
             filter: None,
@@ -470,7 +470,7 @@ pub mod test {
         let loader_response = ListPoliciesResponse {
             policies: Some(vec![build_policy_item(
                 &policy_id,
-                &policy_store_id,
+                &policy_selector,
                 Some(policy_type.to_string()),
                 Some(build_entity_identifier(ENTITY_TYPE, ENTITY_ID)),
                 None,
@@ -481,12 +481,12 @@ pub mod test {
 
         let reader_request = GetPolicyRequest {
             policy_id: policy_id.to_string(),
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
         };
 
         let reader_response = build_get_policy_response(
             &policy_id,
-            &policy_store_id,
+            &policy_selector,
             policy_type,
             build_entity_identifier(PRINCIPAL_ENTITY_TYPE, PRINCIPAL_ENTITY_ID),
             build_entity_identifier(RESOURCE_ENTITY_TYPE, RESOURCE_ENTITY_ID),
@@ -522,7 +522,7 @@ pub mod test {
 
         let mut policy_source = VerifiedPermissionsPolicySource::from(client);
 
-        let result = policy_source.fetch(policy_store_id).await.unwrap();
+        let result = policy_source.fetch(policy_selector).await.unwrap();
 
         assert_eq!(
             result.get(&policy_id).unwrap().clone(),

@@ -1,6 +1,5 @@
 use backoff::ExponentialBackoff;
-use once_cell::sync::Lazy;
-use std::time::Duration;
+use std::{sync::LazyLock, time::Duration};
 
 /*
     Retry AVP API calls for a max of 10 seconds
@@ -10,7 +9,7 @@ use std::time::Duration;
     For very specialized needs, this can be modified using the environment variable
     AWS_AVP_SDK_API_RETRY_TIMEOUT
 */
-static API_RETRY_TIMEOUT_IN_SECONDS: Lazy<u64> = Lazy::new(|| {
+static API_RETRY_TIMEOUT_IN_SECONDS: LazyLock<u64> = LazyLock::new(|| {
     std::env::var("AWS_AVP_SDK_API_RETRY_TIMEOUT").map_or(10, |v| v.parse::<u64>().unwrap_or(10))
 });
 

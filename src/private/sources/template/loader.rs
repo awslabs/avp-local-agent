@@ -12,7 +12,7 @@ use aws_smithy_runtime_api::client::result::SdkError;
 use tracing::{debug, instrument};
 
 use crate::private::sources::template::error::TemplateException;
-use crate::private::types::policy_store_id::PolicyStoreId;
+use crate::private::types::policy_selector::PolicySelector;
 use crate::private::types::template_id::TemplateId;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving a list of
@@ -31,18 +31,18 @@ impl ListPolicyTemplates {
 
 #[async_trait]
 impl Load for ListPolicyTemplates {
-    type Input = PolicyStoreId;
+    type Input = PolicySelector;
     type Output = HashMap<TemplateId, PolicyTemplateItem>;
     type Exception = TemplateException;
 
     #[instrument(skip(self), err(Debug))]
-    async fn load(&self, policy_store_id: Self::Input) -> Result<Self::Output, Self::Exception> {
+    async fn load(&self, policy_selector: Self::Input) -> Result<Self::Output, Self::Exception> {
         let mut policy_template_ids_map = HashMap::new();
 
         let mut client_results = self
             .avp_client
             .list_policy_templates()
-            .policy_store_id(policy_store_id.to_string())
+            .policy_store_id(policy_selector.id().to_string())
             .into_paginator()
             .send();
 
@@ -71,15 +71,15 @@ mod test {
     };
     use crate::private::sources::template::loader::{ListPolicyTemplates, Load};
     use crate::private::sources::test::{build_client, build_event, StatusCode};
-    use crate::private::types::policy_store_id::PolicyStoreId;
+    use crate::private::types::policy_selector::PolicySelector;
     use crate::private::types::template_id::TemplateId;
 
     #[tokio::test]
     async fn list_templates_empty_result_200() {
-        let policy_store_id = PolicyStoreId::from("mockPolicyStore".to_string());
+        let policy_selector = PolicySelector::from("mockPolicyStore".to_string());
 
         let request = ListPolicyTemplatesRequest {
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             next_token: None,
             max_results: 1,
         };
@@ -93,18 +93,18 @@ mod test {
 
         let client = build_client(events);
         let template_loader = ListPolicyTemplates::new(client);
-        let results = template_loader.load(policy_store_id).await.unwrap();
+        let results = template_loader.load(policy_selector).await.unwrap();
         assert_eq!(results.len(), 0);
     }
 
     #[tokio::test]
     async fn list_templates_200() {
         let policy_template_id = TemplateId("mockTemplateId".to_string());
-        let policy_store_id = PolicyStoreId::from("mockPolicyStore".to_string());
+        let policy_selector = PolicySelector::from("mockPolicyStore".to_string());
         let template_description = "mockDescription";
 
         let request = ListPolicyTemplatesRequest {
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             next_token: None,
             max_results: 1,
         };
@@ -112,7 +112,7 @@ mod test {
         let response = ListPolicyTemplatesResponse {
             next_token: None,
             policy_templates: Some(vec![build_policy_template(
-                &policy_store_id,
+                &policy_selector,
                 &policy_template_id,
                 template_description,
             )]),
@@ -122,7 +122,7 @@ mod test {
 
         let client = build_client(events);
         let template_loader = ListPolicyTemplates::new(client);
-        let results = template_loader.load(policy_store_id.clone()).await.unwrap();
+        let results = template_loader.load(policy_selector.clone()).await.unwrap();
         assert_eq!(results.len(), 1);
         assert!(results.contains_key(&TemplateId(policy_template_id.to_string())));
         let policy_template_item = results
@@ -134,20 +134,20 @@ mod test {
         );
         assert_eq!(
             policy_template_item.policy_store_id,
-            policy_store_id.to_string()
+            policy_selector.id().to_string()
         );
     }
 
     #[tokio::test]
     async fn list_templates_with_pagination_200() {
-        let policy_store_id = PolicyStoreId::from("mockPolicyStore".to_string());
+        let policy_selector = PolicySelector::from("mockPolicyStore".to_string());
         let policy_template_id = TemplateId("mockTemplateId".to_string());
         let policy_template_id_2 = TemplateId("mockTemplateId2".to_string());
         let policy_template_description = "mockDescription";
         let policy_template_two_description = "mockDescriptionTwo";
 
         let request = ListPolicyTemplatesRequest {
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             next_token: None,
             max_results: 1,
         };
@@ -155,14 +155,14 @@ mod test {
         let response = ListPolicyTemplatesResponse {
             next_token: Some("token".to_string()),
             policy_templates: Some(vec![build_policy_template(
-                &policy_store_id,
+                &policy_selector,
                 &policy_template_id,
                 policy_template_description,
             )]),
         };
 
         let request_two = ListPolicyTemplatesRequest {
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             next_token: None,
             max_results: 1,
         };
@@ -170,7 +170,7 @@ mod test {
         let response_two = ListPolicyTemplatesResponse {
             next_token: None,
             policy_templates: Some(vec![build_policy_template(
-                &policy_store_id,
+                &policy_selector,
                 &policy_template_id_2,
                 policy_template_two_description,
             )]),
@@ -183,7 +183,7 @@ mod test {
 
         let client = build_client(events);
         let template_loader = ListPolicyTemplates::new(client);
-        let results = template_loader.load(policy_store_id.clone()).await.unwrap();
+        let results = template_loader.load(policy_selector.clone()).await.unwrap();
         assert_eq!(results.len(), 2);
         assert!(results.contains_key(&TemplateId(policy_template_id.to_string())));
         assert!(results.contains_key(&TemplateId(policy_template_id_2.to_string())));
@@ -201,7 +201,7 @@ mod test {
         );
         assert_eq!(
             policy_template_item.policy_store_id,
-            policy_store_id.to_string()
+            policy_selector.id().to_string()
         );
 
         let policy_template_item_two = results
@@ -217,7 +217,7 @@ mod test {
         );
         assert_eq!(
             policy_template_item_two.policy_store_id,
-            policy_store_id.to_string()
+            policy_selector.id().to_string()
         );
     }
 }
