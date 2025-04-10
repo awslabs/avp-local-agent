@@ -1,4 +1,4 @@
-use backoff::ExponentialBackoff;
+use backon::{BackoffBuilder, ExponentialBuilder};
 use std::time::Duration;
 
 /*
@@ -27,11 +27,10 @@ pub struct BackoffStrategy {
 }
 
 impl BackoffStrategy {
-    pub(crate) fn get_backoff(&self) -> ExponentialBackoff {
-        ExponentialBackoff {
-            max_elapsed_time: Option::from(Duration::from_secs(self.time_limit_seconds)),
-            ..Default::default()
-        }
+    pub(crate) fn get_backoff(&self) -> backon::ExponentialBackoff {
+        ExponentialBuilder::new()
+            .with_max_delay(Duration::from_secs(self.time_limit_seconds))
+            .build()
     }
 }
 

@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::operation::get_policy::{GetPolicyError, GetPolicyOutput};
 use aws_sdk_verifiedpermissions::Client;
 use aws_smithy_runtime_api::client::result::SdkError;
+use backon::Retryable;
 use tracing::instrument;
 
 use crate::private::sources::policy::error::PolicyException;
@@ -48,8 +49,9 @@ impl GetPolicy {
                 .map_err(SdkError::into_service_error)?;
             Ok(get_policy_result)
         };
-
-        backoff::future::retry(self.backoff_strategy.get_backoff(), get_policy_operation).await
+        get_policy_operation
+            .retry(self.backoff_strategy.get_backoff())
+            .await
     }
 }
 

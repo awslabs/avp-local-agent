@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use aws_sdk_verifiedpermissions::operation::get_schema::{GetSchemaError, GetSchemaOutput};
 use aws_sdk_verifiedpermissions::Client;
 use aws_smithy_runtime_api::client::result::SdkError;
+use backon::Retryable;
 use tracing::instrument;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving the schema.
@@ -43,7 +44,9 @@ impl GetSchema {
             Ok(get_policy_result)
         };
 
-        backoff::future::retry(self.backoff_strategy.get_backoff(), get_policy_operation).await
+        get_policy_operation
+            .retry(self.backoff_strategy.get_backoff())
+            .await
     }
 }
 
