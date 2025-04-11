@@ -1,4 +1,5 @@
 //! Provides an Amazon Verified Permissions Policy Set Provider!
+use std::fmt::Debug;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -21,7 +22,10 @@ use crate::private::sources::policy::error::PolicySourceException;
 use crate::private::sources::template::core::{TemplateSource, VerifiedPermissionsTemplateSource};
 use crate::private::sources::template::error::TemplateSourceException;
 use crate::private::translator::avp_to_cedar::Policy;
-use crate::private::types::policy_store_id::PolicyStoreId;
+use crate::private::types::policy_selector::PolicySelector;
+use crate::private::types::policy_store_filter::{PolicyFilterInputError, PolicyStoreFilter};
+
+use super::policy_set_filter::PolicySetFilter;
 
 /// `ProviderError` thrown by the constructor of the provider
 #[derive(Error, Debug)]
@@ -38,6 +42,9 @@ pub enum ProviderError {
     /// Cannot retrieve the Templates from Amazon Verified Permissions
     #[error("Cannot gather the Policies from Amazon Verified Permissions: {0}")]
     TemplateSourceException(#[from] TemplateSourceException),
+    /// A policy set filter expression is invalid
+    #[error("Invalid Policy Store Filter expression: {0}")]
+    PolicyFilterInputError(#[from] PolicyFilterInputError),
 }
 
 /// The enum for errors that occur when building the `PolicySet`
@@ -68,14 +75,14 @@ struct Config {
     /// Gathers templates from Amazon Verified Permissions
     pub template_source: VerifiedPermissionsTemplateSource,
     /// Policy Store Id to gather policies and templates from
-    pub policy_store_id: PolicyStoreId,
+    pub policy_selector: PolicySelector,
 }
 
 /// `PolicySetProvider` structure implements the `SimplePolicySetProvider` trait.
 #[derive(Debug)]
 pub struct PolicySetProvider {
     /// Entities path, stored to allow refreshing from disk.
-    policy_store_id: PolicyStoreId,
+    policy_selector: PolicySelector,
     /// Policy Source
     policy_source: Arc<Mutex<VerifiedPermissionsPolicySource>>,
     /// Policy Source
@@ -85,6 +92,26 @@ pub struct PolicySetProvider {
 }
 
 impl PolicySetProvider {
+    #[instrument(skip(verified_permissions_client), err(Debug))]
+    fn from_all(
+        policy_store_id: String,
+        policy_store_filters: Option<PolicyStoreFilter>,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
+        Self::new(
+            ConfigBuilder::default()
+                .policy_selector(
+                    PolicySelector::from(policy_store_id).with_filters(policy_store_filters),
+                )
+                .policy_source(VerifiedPermissionsPolicySource::from(
+                    verified_permissions_client.clone(),
+                ))
+                .template_source(VerifiedPermissionsTemplateSource::from(
+                    verified_permissions_client,
+                ))
+                .build()?,
+        )
+    }
     /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
     /// client and policy store id
     ///
@@ -97,23 +124,30 @@ impl PolicySetProvider {
         policy_store_id: String,
         verified_permissions_client: Client,
     ) -> Result<Self, ProviderError> {
-        Self::new(
-            ConfigBuilder::default()
-                .policy_store_id(PolicyStoreId::from(policy_store_id))
-                .policy_source(VerifiedPermissionsPolicySource::from(
-                    verified_permissions_client.clone(),
-                ))
-                .template_source(VerifiedPermissionsTemplateSource::from(
-                    verified_permissions_client,
-                ))
-                .build()?,
-        )
+        Self::from_all(policy_store_id, None, verified_permissions_client)
+    }
+
+    /// Provides a helper to build the `PolicySetProvider` from an Amazon Verified Permissions
+    /// client and policy store id with additional policy filtering
+    ///
+    /// # Errors
+    ///
+    /// Can error if the builder is incorrect, if the `new` constructor fails to gather the
+    /// applicable data on initialization, or if the `PolicySetFilter` expression is not valid.
+    #[instrument(skip(verified_permissions_client), err(Debug))]
+    pub fn from_client_with_filters<'a>(
+        policy_store_id: String,
+        policy_store_filters: Option<PolicySetFilter<'a>>,
+        verified_permissions_client: Client,
+    ) -> Result<Self, ProviderError> {
+        let filters = policy_store_filters.map(TryInto::try_into).transpose()?;
+        Self::from_all(policy_store_id, filters, verified_permissions_client)
     }
 
     #[instrument(skip(config), err(Debug))]
     fn new(config: Config) -> Result<Self, ProviderError> {
         let Config {
-            policy_store_id,
+            policy_selector,
             template_source,
             policy_source,
         } = config;
@@ -122,26 +156,26 @@ impl PolicySetProvider {
         let policy_source = Arc::new(Mutex::new(policy_source));
 
         let mut policy_set = PolicySet::new();
-        let policy_store_id_clone = policy_store_id.clone();
+        let policy_selector_clone = policy_selector.clone();
         let template_source_ref = template_source.clone();
         let templates = task::block_in_place(move || {
             Handle::current().block_on(async move {
                 template_source_ref
                     .lock()
                     .await
-                    .fetch(policy_store_id_clone)
+                    .fetch(policy_selector_clone)
                     .await
             })
         })?;
 
-        let policy_store_id_clone = policy_store_id.clone();
+        let policy_selector_clone = policy_selector.clone();
         let policy_source_ref = policy_source.clone();
         let policies = task::block_in_place(move || {
             Handle::current().block_on(async move {
                 policy_source_ref
                     .lock()
                     .await
-                    .fetch(policy_store_id_clone.clone())
+                    .fetch(policy_selector_clone.clone())
                     .await
             })
         })?;
@@ -188,7 +222,7 @@ impl PolicySetProvider {
         }
 
         Ok(Self {
-            policy_store_id,
+            policy_selector,
             template_source,
             policy_source,
             policy_set: RwLock::new(Arc::new(policy_set)),
@@ -214,7 +248,7 @@ impl UpdateProviderData for PolicySetProvider {
                 .template_source
                 .lock()
                 .await
-                .fetch(self.policy_store_id.clone())
+                .fetch(self.policy_selector.clone())
                 .await
                 .map_err(|e| UpdateProviderDataError::General(Box::new(ProviderError::from(e))))?;
         };
@@ -225,7 +259,7 @@ impl UpdateProviderData for PolicySetProvider {
                 .policy_source
                 .lock()
                 .await
-                .fetch(self.policy_store_id.clone())
+                .fetch(self.policy_selector.clone())
                 .await
                 .map_err(|e| UpdateProviderDataError::General(Box::new(ProviderError::from(e))))?;
         }

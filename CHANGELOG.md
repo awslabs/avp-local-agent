@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Update to Cedar 4 (requires breaking change)
+- Renamed `PolicyStoreId` to `PolicySelector` (because that's what it is now)
+- Added `PolicyStoreFilter` as an optional part of the `PolicySelector` which then allows a policy store policy
+  cache to contain only a subset of the policies actually managed by the AVP Policy Store (for example,
+  only policies associated with a certain policy template). Note that if the set of policies that one 
+  `PolicySelector` identifies intersects with the set of policies that another `PolicySelector` identifies,
+  the policies in the intersection will be cached _twice_.
 
 ### Changed
 

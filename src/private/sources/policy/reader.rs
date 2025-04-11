@@ -11,7 +11,7 @@ use tracing::instrument;
 use crate::private::sources::policy::error::PolicyException;
 use crate::private::sources::Read;
 use crate::private::types::policy_id::PolicyId;
-use crate::private::types::policy_store_id::PolicyStoreId;
+use crate::private::types::policy_selector::PolicySelector;
 
 use crate::private::sources::retry::BackoffStrategy;
 
@@ -58,15 +58,15 @@ impl GetPolicy {
 /// Input required for the AVP `GetPolicy` operation.
 #[derive(Debug, Clone)]
 pub struct GetPolicyInput {
-    policy_store_id: PolicyStoreId,
+    policy_selector: PolicySelector,
     policy_id: PolicyId,
 }
 
 impl GetPolicyInput {
-    /// Create a new `GetPolicyInput` instance with the given `PolicyStoreId` and `PolicyId`.
-    pub fn new(policy_store_id: PolicyStoreId, policy_id: PolicyId) -> Self {
+    /// Create a new `GetPolicyInput` instance with the given `PolicySelector` and `PolicyId`.
+    pub fn new(policy_selector: PolicySelector, policy_id: PolicyId) -> Self {
         Self {
-            policy_store_id,
+            policy_selector,
             policy_id,
         }
     }
@@ -74,7 +74,7 @@ impl GetPolicyInput {
 
 #[async_trait]
 impl Read for GetPolicy {
-    /// Returns policy data with the given `PolicyId` and `PolicyStoreId`.
+    /// Returns policy data with the given `PolicyId` and `PolicySelector`.
     type Input = GetPolicyInput;
     type Output = GetPolicyOutput;
     type Exception = PolicyException;
@@ -84,7 +84,7 @@ impl Read for GetPolicy {
         Ok(self
             .get_policy(
                 &input.policy_id.to_string(),
-                &input.policy_store_id.to_string(),
+                &input.policy_selector.id().to_string(),
             )
             .await?)
     }
@@ -101,11 +101,11 @@ mod tests {
     use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
     use crate::private::sources::Read;
     use crate::private::types::policy_id::PolicyId;
-    use crate::private::types::policy_store_id::PolicyStoreId;
+    use crate::private::types::policy_selector::PolicySelector;
     #[tokio::test]
     async fn get_policy_200() {
         let policy_id = PolicyId("mockPolicyId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_selector = PolicySelector::from("mockPolicyStoreId".to_string());
         let policy_type = "STATIC";
         let principal_entity_type = "principal_entity_type";
         let principal_entity_id = "principal_entity_id";
@@ -116,12 +116,12 @@ mod tests {
 
         let request = GetPolicyRequest {
             policy_id: policy_id.to_string(),
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
         };
 
         let response = build_get_policy_response(
             &policy_id,
-            &policy_store_id,
+            &policy_selector,
             policy_type,
             build_entity_identifier(principal_entity_type, principal_entity_id),
             build_entity_identifier(resource_entity_type, resource_entity_id),
@@ -136,13 +136,13 @@ mod tests {
         let client = build_client(events);
         let policy_reader = GetPolicy::new(client, BackoffStrategy::default());
         let read_input = GetPolicyInput {
-            policy_store_id: policy_store_id.clone(),
+            policy_selector: policy_selector.clone(),
             policy_id: policy_id.clone(),
         };
         let result = policy_reader.read(read_input).await.unwrap();
 
         assert_eq!(result.policy_id, policy_id.to_string());
-        assert_eq!(result.policy_store_id, policy_store_id.to_string());
+        assert_eq!(result.policy_store_id, policy_selector.id().to_string());
         assert_eq!(result.principal.unwrap().entity_id, principal_entity_id);
         assert_eq!(result.resource.unwrap().entity_id, resource_entity_id);
         assert_eq!(
@@ -162,11 +162,11 @@ mod tests {
     #[tokio::test]
     async fn get_policy_400() {
         let policy_id = PolicyId("mockPolicyId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_selector = PolicySelector::from("mockPolicyStoreId".to_string());
 
         let request = GetPolicyRequest {
             policy_id: policy_id.to_string(),
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
         };
 
         let events = vec![build_empty_event(&request, StatusCode::BAD_REQUEST)];
@@ -174,7 +174,7 @@ mod tests {
         let client = build_client(events);
         let policy_reader = GetPolicy::new(client, BackoffStrategy::default());
         let read_input = GetPolicyInput {
-            policy_store_id,
+            policy_selector,
             policy_id,
         };
         let result = policy_reader.read(read_input).await;

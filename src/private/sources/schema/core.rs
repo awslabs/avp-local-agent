@@ -9,7 +9,7 @@ use crate::private::sources::schema::error::SchemaSourceException;
 use crate::private::sources::schema::reader::GetSchema;
 use crate::private::sources::Read;
 use crate::private::translator::avp_to_cedar::Schema;
-use crate::private::types::policy_store_id::PolicyStoreId;
+use crate::private::types::policy_selector::PolicySelector;
 
 /// A trait to abstract fetching the most recent `Schema` data from the AVP APIs. This method, must
 /// update local caches to minimize API calls.
@@ -23,7 +23,7 @@ pub trait SchemaSource {
     #[allow(dead_code)]
     async fn fetch(
         &mut self,
-        policy_store_id: PolicyStoreId,
+        policy_selector: PolicySelector,
     ) -> Result<cedar_policy::Schema, Self::Error>;
 }
 
@@ -51,12 +51,12 @@ impl SchemaSource for VerifiedPermissionsSchemaSource {
     #[instrument(skip_all, err(Debug))]
     async fn fetch(
         &mut self,
-        policy_store_id: PolicyStoreId,
+        policy_selector: PolicySelector,
     ) -> Result<cedar_policy::Schema, Self::Error> {
-        let avp_schema = self.reader.read(policy_store_id.clone()).await?.schema;
+        let avp_schema = self.reader.read(policy_selector.clone()).await?.schema;
 
         let Schema(cedar_schema) = Schema::try_from(avp_schema.as_str())?;
-        debug!("Successfully fetched Policy Store Schema: policy_store_id={policy_store_id:?}");
+        debug!("Successfully fetched Policy Store Schema: policy_selector={policy_selector:?}");
         Ok(cedar_schema)
     }
 }
@@ -68,7 +68,7 @@ mod test {
 
     use crate::private::sources::schema::core::{SchemaSource, VerifiedPermissionsSchemaSource};
     use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
-    use crate::private::types::policy_store_id::PolicyStoreId;
+    use crate::private::types::policy_selector::PolicySelector;
 
     const POLICY_STORE_ID: &str = "ps-123";
 
@@ -154,7 +154,7 @@ mod test {
 
         let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
         let result = schema_source
-            .fetch(PolicyStoreId(POLICY_STORE_ID.to_string()))
+            .fetch(PolicySelector::from(POLICY_STORE_ID.to_string()))
             .await;
 
         assert!(result.is_ok());
@@ -173,7 +173,7 @@ mod test {
         let mut schema_source = VerifiedPermissionsSchemaSource::from(client);
 
         let result = schema_source
-            .fetch(PolicyStoreId(POLICY_STORE_ID.to_string()))
+            .fetch(PolicySelector::from(POLICY_STORE_ID.to_string()))
             .await;
 
         assert!(result.is_err());
