@@ -46,8 +46,6 @@ backon = { version = "1" }
 # backoff = { version = "0.4.0" , features = ["tokio"] }
 chrono = "0.4.26"
 derive_builder = "0.20.2"
-futures = { version = "0.3.28", features = ["std"] }
-#rand = "0.8.5"
 serde = { version = "1.0.166", features = ["derive"] }
 serde_json = "1.0.100"
 tokio = { version = "1.0", features = ["full", "signal", "sync", "parking_lot"] }

@@ -108,7 +108,6 @@ dependencies = [
  "cedar-policy",
  "chrono",
  "derive_builder",
- "futures",
  "nom 8.0.0",
  "serde",
  "serde_json",
