@@ -13,7 +13,7 @@ use tracing::instrument;
 use crate::private::sources::retry::BackoffStrategy;
 use crate::private::sources::template::error::TemplateException;
 use crate::private::sources::Read;
-use crate::private::types::policy_store_id::PolicyStoreId;
+use crate::private::types::policy_selector::PolicySelector;
 use crate::private::types::template_id::TemplateId;
 
 /// This structure implements the calls to Amazon Verified Permissions for retrieving the
@@ -61,16 +61,16 @@ impl GetPolicyTemplate {
 #[derive(Debug, Clone)]
 pub struct GetPolicyTemplateInput {
     /// The policy store id
-    pub policy_store_id: PolicyStoreId,
+    pub policy_selector: PolicySelector,
     /// The template id
     pub policy_template_id: TemplateId,
 }
 
 impl GetPolicyTemplateInput {
     /// Create a new `GetPolicyTemplateInput` instance with the given policy store id and template id.
-    pub fn new(policy_store_id: PolicyStoreId, policy_template_id: TemplateId) -> Self {
+    pub fn new(policy_selector: PolicySelector, policy_template_id: TemplateId) -> Self {
         Self {
-            policy_store_id,
+            policy_selector,
             policy_template_id,
         }
     }
@@ -87,7 +87,7 @@ impl Read for GetPolicyTemplate {
         Ok(self
             .get_policy_template(
                 &input.policy_template_id.to_string(),
-                &input.policy_store_id.to_string(),
+                &input.policy_selector.id().to_string(),
             )
             .await?)
     }
@@ -104,23 +104,23 @@ mod test {
         GetPolicyTemplate, GetPolicyTemplateInput, Read,
     };
     use crate::private::sources::test::{build_client, build_empty_event, build_event, StatusCode};
-    use crate::private::types::policy_store_id::PolicyStoreId;
+    use crate::private::types::policy_selector::PolicySelector;
     use crate::private::types::template_id::TemplateId;
 
     #[tokio::test]
     async fn get_template_200() {
         let policy_template_id = TemplateId("mockTemplateId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_selector = PolicySelector::from("mockPolicyStoreId".to_string());
         let template_description = "mockTemplateDescription";
         let statement = "some statement";
 
         let request = GetPolicyTemplateRequest {
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             policy_template_id: policy_template_id.to_string(),
         };
 
         let response = build_get_policy_template_response(
-            &policy_store_id,
+            &policy_selector,
             &policy_template_id,
             template_description,
             statement,
@@ -131,7 +131,7 @@ mod test {
         let client = build_client(events);
         let template_reader = GetPolicyTemplate::new(client, BackoffStrategy::default());
         let read_input = GetPolicyTemplateInput {
-            policy_store_id,
+            policy_selector,
             policy_template_id,
         };
         let result = template_reader.read(read_input).await.unwrap();
@@ -142,10 +142,10 @@ mod test {
     #[tokio::test]
     async fn get_template_400() {
         let policy_template_id = TemplateId("mockTemplateId".to_string());
-        let policy_store_id = PolicyStoreId("mockPolicyStoreId".to_string());
+        let policy_selector = PolicySelector::from("mockPolicyStoreId".to_string());
 
         let request = GetPolicyTemplateRequest {
-            policy_store_id: policy_store_id.to_string(),
+            policy_store_id: policy_selector.id().to_string(),
             policy_template_id: policy_template_id.to_string(),
         };
 
@@ -154,7 +154,7 @@ mod test {
         let client = build_client(events);
         let template_reader = GetPolicyTemplate::new(client, BackoffStrategy::default());
         let read_input = GetPolicyTemplateInput {
-            policy_store_id,
+            policy_selector,
             policy_template_id,
         };
         let result = template_reader.read(read_input).await;

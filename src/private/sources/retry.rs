@@ -1,12 +1,17 @@
 use backon::{BackoffBuilder, ExponentialBuilder};
-use std::time::Duration;
+use std::{sync::LazyLock, time::Duration};
 
 /*
     Retry AVP API calls for a max of 10 seconds
     There is some randomness in the exponential backoff algorithm but this will likely result in
     a maximum of around 10 retries in the worst case
+
+    For very specialized needs, this can be modified using the environment variable
+    AWS_AVP_SDK_API_RETRY_TIMEOUT
 */
-static API_RETRY_TIMEOUT_IN_SECONDS: u64 = 10;
+static API_RETRY_TIMEOUT_IN_SECONDS: LazyLock<u64> = LazyLock::new(|| {
+    std::env::var("AWS_AVP_SDK_API_RETRY_TIMEOUT").map_or(10, |v| v.parse::<u64>().unwrap_or(10))
+});
 
 /**
 The purpose of the `BackoffStrategy` is to allow fine grained control of
@@ -37,7 +42,7 @@ impl BackoffStrategy {
 impl Default for BackoffStrategy {
     fn default() -> Self {
         Self {
-            time_limit_seconds: API_RETRY_TIMEOUT_IN_SECONDS,
+            time_limit_seconds: *API_RETRY_TIMEOUT_IN_SECONDS,
         }
     }
 }
