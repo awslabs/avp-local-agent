@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## 3.0.0 2024-4-29
 - Update to Cedar 4 (requires breaking change)
 - Renamed `PolicyStoreId` to `PolicySelector` (because that's what it is now)
 - Added `PolicyStoreFilter` as an optional part of the `PolicySelector` which then allows a policy store policy
@@ -16,14 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only policies associated with a certain policy template). Note that if the set of policies that one 
   `PolicySelector` identifies intersects with the set of policies that another `PolicySelector` identifies,
   the policies in the intersection will be cached _twice_.
-
-### Changed
-
 - Remove dependency on `cedar-policy-core`, `cedar-policy-formatter`, and `cedar-policy-validator`. (Breaking change due to new import on `EntitiesError`)
 - Update `thiserror` and `derive_builder` versions
-
-### Fixed
-
 - Remove unused deps
 
 ## 2.0.0 2024-3-15
