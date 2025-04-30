@@ -92,7 +92,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "avp-local-agent"
-version = "2.0.0"
+version = "3.0.0"
 dependencies = [
  "async-trait",
  "aws-config",
@@ -740,8 +740,9 @@ dependencies = [
 
 [[package]]
 name = "cedar-local-agent"
-version = "2.0.0"
-source = "git+https://github.com/cedar-policy/cedar-local-agent.git#37a9588e8e29b86536eedeb4ac959d1ea7ee0139"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25ecad7f6f7fc79470f00e980d4bcde0ec64a8031d52e7390e068e04a5874682"
 dependencies = [
  "async-trait",
  "cedar-policy",

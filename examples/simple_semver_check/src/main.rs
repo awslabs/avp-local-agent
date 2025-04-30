@@ -12,9 +12,9 @@ use std::sync::Arc;
 
 fn construct_request() -> Request {
     Request::new(
-        Some("Test::Entity::\"request\"".parse().unwrap()),
-        Some("Test::Action::\"Action\"".parse().unwrap()),
-        Some("Test::Entity::\"request\"".parse().unwrap()),
+        "Test::Entity::\"request\"".parse().unwrap(),
+        "Test::Action::\"Action\"".parse().unwrap(),
+        "Test::Entity::\"request\"".parse().unwrap(),
         Context::empty(),
         None,
     )
@@ -29,7 +29,7 @@ async fn main() {
     }
     let policy_store_id = String::from(args.remove(1));
 
-    let aws_config = aws_config::load_defaults(BehaviorVersion::v2023_11_09()).await;
+    let aws_config = aws_config::defaults(BehaviorVersion::latest()).region("us-east-1").load().await;
     let client = Client::new(&aws_config);
     let policy_set_provider =
         avp_local_agent::public::policy_set_provider::PolicySetProvider::from_client(

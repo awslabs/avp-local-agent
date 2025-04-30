@@ -15,7 +15,7 @@
 [package]
 name = "avp-local-agent"
 edition = "2021"
-version = "2.0.0"
+version = "3.0.0"
 license = "Apache-2.0"
 description = "Amazon Verified Permissions policy and entity providers. These providers are used to build a `cedar-local-agent` simple::Authorizer."
 keywords = ["cedar", "agent", "verified_permissions", "authorization", "security"]
@@ -23,7 +23,7 @@ repository = "https://github.com/awslabs/avp-local-agent"
 
 [dependencies]
 # Main definitions for a Cedar-based authorization agent
-cedar-local-agent = { git = "https://github.com/cedar-policy/cedar-local-agent.git" }
+cedar-local-agent = "3" 
 
 # Cedar
 cedar-policy = "4.2.0"
@@ -31,7 +31,7 @@ cedar-policy = "4.2.0"
 # AWS
 aws-config = "1"
 aws-credential-types = "1"
-aws-sdk-verifiedpermissions = "=1.3.0"
+aws-sdk-verifiedpermissions = "1.3.0"
 aws-smithy-async = "1"
 aws-smithy-runtime-api = "1"
 aws-types = "1"
